@@ -1,16 +1,18 @@
 #!/bin/bash
 PROGRAM=./twoChildren
 
-for i in {0..0}
+for i in {0..100..10}
 do
-	for j in {0..10000..20}
+	echo "The delay is $i"
+	for j in {1..100}
 	do
-		#echo $i, $j
-		RESULT=$($PROGRAM $i $j)
+		#echo "turn == $j"
+		RESULT=$($PROGRAM 0 $i)
 		#echo $RESULT
 		if [ $RESULT != 0 ]
 		then
 			echo $RESULT
+			#echo $RESULT
 		fi
 	done
 done
