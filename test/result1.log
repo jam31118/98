@@ -1,0 +1,35 @@
+From this we can know ...
+- the child process's Program Counter is initialized to the 
+  current PC value of parent process, at the forking timepoint.
+  So the instructions before the fork() instruction are not
+  executed by the child process unless going back.
+  However, by looking the result below, we can know that the
+  the first messages, namely "Main process ..." is printed twice!
+  Why is that?
+- Where did the ppid=1443 came from? Is the pid of the executing shell?
+
+===== RESULT =====
+Main process id = 18794 (parent PID = 18788)
+I'm parent with pid = 18794 (with grandparent ID = 18788)
+I'm parent with pid = 18794 (with grandparent ID = 18788)
+I'm parent with pid = 18794 (with grandparent ID = 18788)
+I'm parent with pid = 18794 (with grandparent ID = 18788)
+I'm parent with pid = 18794 (with grandparent ID = 18788)
+I'm parent with pid = 18794 (with grandparent ID = 18788)
+I'm parent with pid = 18794 (with grandparent ID = 18788)
+I'm parent with pid = 18794 (with grandparent ID = 18788)
+I'm parent with pid = 18794 (with grandparent ID = 18788)
+I'm parent with pid = 18794 (with grandparent ID = 18788)
+[END] Main process id = 18794 (parent PID = 18788)
+Main process id = 18794 (parent PID = 18788)
+I'm child with pid = 0(with absPID = 18795, ppid = 18794)
+I'm child with pid = 0(with absPID = 18795, ppid = 1443)
+I'm child with pid = 0(with absPID = 18795, ppid = 1443)
+I'm child with pid = 0(with absPID = 18795, ppid = 1443)
+I'm child with pid = 0(with absPID = 18795, ppid = 1443)
+I'm child with pid = 0(with absPID = 18795, ppid = 1443)
+I'm child with pid = 0(with absPID = 18795, ppid = 1443)
+I'm child with pid = 0(with absPID = 18795, ppid = 1443)
+I'm child with pid = 0(with absPID = 18795, ppid = 1443)
+I'm child with pid = 0(with absPID = 18795, ppid = 1443)
+[END] Main process id = 18795 (parent PID = 1443)
