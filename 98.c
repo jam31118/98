@@ -28,7 +28,7 @@ int main() {
 		printf("Map failed\n");
 		return -1;
 	}
-
+	//
 	printf("Main process id = %d (parent PID = %d)\n", (int)getpid(),(int)getppid());
 	*ptr = 0;
 	child_pid =  fork();
@@ -36,19 +36,24 @@ int main() {
 	if (child_pid !=0)
 	{
 		printf("I AM PARENT\n");
-		for(int i=0;i< 10; i++)
+		fflush(stdout);
+		for(int i=0;i< 100; i++)
 		{
-			*ptr += 2;
+			*ptr += 1;
 			printf("THIS IS PARENT : shared memory variable is %d\n", *ptr);
+			fflush(stdout);
 		}
 
 	}	
 	else
 	{
 		puts("I AM CHILD");
-		for(int i =0; i< 10; i++)
+		for(int i =0; i< 100; i++)
+		{
+			*ptr -=1;
 			printf("THIS IS CHILD ; shared memory variable is %d\n", *ptr);
-		
+			fflush(stdout);
+		}
 	}
 
 
