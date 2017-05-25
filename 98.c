@@ -12,28 +12,45 @@
 int main() {
 	pid_t child_pid;
 	// shared memory 
-	/*
+	
 	const char *name ="/OS";
 	int shm_fd;
-	void *ptr;
-	const int SIZE 4096;
+	int *ptr;
+	//const int SIZE 4096;
 	shm_fd = shm_open(name, O_CREAT | O_RDWR, 0666);
-	ftruncate(shm_fd, SIZE);
-	*/
+	if (shm_fd == -1){
+		printf("Shared memory segment failed\n");
+		exit(-1);
+	}
+	ftruncate(shm_fd, sizeof(int));
+	ptr = mmap(0,sizeof(int) ,PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd,0);
+	if (ptr == MAP_FAILED){
+		printf("Map failed\n");
+		return -1;
+	}
 
 	printf("Main process id = %d (parent PID = %d)\n", (int)getpid(),(int)getppid());
+	*ptr = 0;
 	child_pid =  fork();
 	int count = 4;
 	if (child_pid !=0)
 	{
-		printf("Parent: child's process id = %d\n", child_pid);
-		printf("Parent Count: %d\n",count++);
-		printf("Parent Count: %d\n",count)i;
+		printf("I AM PARENT\n");
+		for(int i=0;i< 10; i++)
+		{
+			*ptr += 2;
+			printf("THIS IS PARENT : shared memory variable is %d\n", *ptr);
+		}
+
 	}	
 	else
 	{
-		printf("Child : my process id = %d\n",(int) getpid());
-		printf("Child Count: %d\n",count);
+		puts("I AM CHILD");
+		for(int i =0; i< 10; i++)
+			printf("THIS IS CHILD ; shared memory variable is %d\n", *ptr);
+		
 	}
+
+
 	return 0;
 }
