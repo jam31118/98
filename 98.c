@@ -28,7 +28,7 @@ int main() {
 	{
 		printf("Parent: child's process id = %d\n", child_pid);
 		printf("Parent Count: %d\n",count++);
-		printf("Parent Count: %d\n",count)i;
+		printf("Parent Count: %d\n",count);
 	}	
 	else
 	{
