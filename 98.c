@@ -12,10 +12,12 @@
 int main() {
 	pid_t child_pid;
 	// shared memory 
-	
+	int status;
 	const char *name ="/OS";
 	int shm_fd;
 	int *ptr;
+	int register1;
+	int register2;
 	//const int SIZE 4096;
 	shm_fd = shm_open(name, O_CREAT | O_RDWR, 0666);
 	if (shm_fd == -1){
@@ -32,26 +34,52 @@ int main() {
 	printf("Main process id = %d (parent PID = %d)\n", (int)getpid(),(int)getppid());
 	*ptr = 0;
 	child_pid =  fork();
-	int count = 4;
+	//int count = 4;
 	if (child_pid !=0)
 	{
-		printf("I AM PARENT\n");
-		fflush(stdout);
-		for(int i=0;i< 100; i++)
+		child_pid = fork();
+		if (child_pid != 0)
 		{
-			*ptr += 1;
-			printf("THIS IS PARENT : shared memory variable is %d\n", *ptr);
+			wait(&status);
+			printf("Shared variable : %d\n",*ptr);
+		}
+		else{
+	//	printf("I AM PARENT\n");
+		fflush(stdout);
+		for(int i=0;i< 10; i++)
+		{
+			register1 = *ptr;
+		//	printf("REISTER1 : %d\n",register1);
+			usleep(10);
+			fflush(stdout);
+			register1++;
+		//	printf("REISTER1 : %d\n",register1);
+			usleep(10);
+			fflush(stdout);
+			*ptr = register1;
+		//	printf("THIS IS PARENT : shared memory variable is %d\n", *ptr);
+			usleep(10);
 			fflush(stdout);
 		}
-
+	}
 	}	
 	else
 	{
-		puts("I AM CHILD");
-		for(int i =0; i< 100; i++)
+	//	puts("I AM CHILD");
+		fflush(stdout);
+		for(int i =0; i< 10; i++)
 		{
-			*ptr -=1;
-			printf("THIS IS CHILD ; shared memory variable is %d\n", *ptr);
+			register2 = *ptr;
+	//		printf("REISTER2 : %d\n",register2);
+			usleep(10);
+			fflush(stdout);
+			register2--;
+	//		printf("REISTER2 : %d\n",register2);
+			usleep(10);
+			fflush(stdout);
+			*ptr = register2;
+	//		printf("THIS IS CHILD ; shared memory variable is %d\n", *ptr);
+			usleep(10);
 			fflush(stdout);
 		}
 	}
