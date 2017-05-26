@@ -48,18 +48,18 @@ int main() {
 		fflush(stdout);
 		for(int i=0;i< 10; i++)
 		{
-			register1 = *ptr;
+	//		register1 = *ptr;
 		//	printf("REISTER1 : %d\n",register1);
-			usleep(10);
-			fflush(stdout);
-			register1++;
+	//		usleep(10);
+	//		fflush(stdout);
+	//		register1++;
 		//	printf("REISTER1 : %d\n",register1);
-			usleep(10);
-			fflush(stdout);
-			*ptr = register1;
+	//		usleep(10);
+	//		fflush(stdout);
+			(*ptr)++;
 		//	printf("THIS IS PARENT : shared memory variable is %d\n", *ptr);
 			usleep(10);
-			fflush(stdout);
+		//	fflush(stdout);
 		}
 	}
 	}	
@@ -69,18 +69,18 @@ int main() {
 		fflush(stdout);
 		for(int i =0; i< 10; i++)
 		{
-			register2 = *ptr;
+	//		register2 = *ptr;
 	//		printf("REISTER2 : %d\n",register2);
-			usleep(10);
-			fflush(stdout);
-			register2--;
+	//		usleep(10);
+	//		fflush(stdout);
+	//		register2--;
 	//		printf("REISTER2 : %d\n",register2);
-			usleep(10);
-			fflush(stdout);
-			*ptr = register2;
+	//		usleep(10);
+	//		fflush(stdout);
+			(*ptr)--;
 	//		printf("THIS IS CHILD ; shared memory variable is %d\n", *ptr);
 			usleep(10);
-			fflush(stdout);
+	//		fflush(stdout);
 		}
 	}
 
