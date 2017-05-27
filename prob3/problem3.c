@@ -13,8 +13,10 @@
 #include <sys/stat.h>
 #include <semaphore.h>
 
+#define BUFSIZE 20
+
 typedef struct sh_data {
-	int buffer[20];
+	int buffer[BUFSIZE];
 	int SUM;
 	int *write_ptr, *read_ptr;
 } sh_data_t;
@@ -40,13 +42,13 @@ int main(int argc, char *argv[]) {
 	int n = atoi(argv[2]);
 
 	/* Global configuration */
-	//int N = 10;
+	//int bufSize = 20;
 	//int n = 2; // number of processes
 
 	/* Shared memory information */
 	const char *shmName = "/SHM";
 	size_t SIZE = sizeof(sh_data_t);
-	int *sh_data_p;
+	sh_data_t *sh_data_p;
 	int shm_fd;
 	
 	/* Shared memory declaration */
@@ -57,7 +59,8 @@ int main(int argc, char *argv[]) {
 	if(sh_data_p == MAP_FAILED) {printf("Map Failed\n");return 1;}
 
 	/* Shared Data initialization */
-	*sh_data_p;
+	sh_data_p->SUM = 0;
+	int i; for (i=0; i<BUFSIZE; i++) *(sh_data_p->buffer + i) = 0;
 		
 	/* Semaphore information */
 	const char *semName = "/SEM";

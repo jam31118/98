@@ -1,6 +1,6 @@
 CC = gcc 
 CFLAGS = -O2 -Wall -lrt -pthread --std=c11
-OUTPUT = problem2
+OUTPUT = problem3
 OBJ = $(OUTPUT).c
 #SUBDIRS = $(wildcard */.)
 

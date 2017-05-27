@@ -10,10 +10,15 @@ do
 		# Repeat with same delay time setting
 		# in order to find the race condition case
 	do
-		RESULT=$($PROGRAM 0 $i)
-		if [ $RESULT != 0 ]
+		RESULT1=$($PROGRAM 0 $i)
+		if [ $RESULT1 != 0 ]
 		then
-			echo $RESULT
+			echo $RESULT1
 		fi
+		#RESULT2=$($PROGRAM $i 0)
+		#if [ $RESULT2 != 0 ]
+		#then
+		#	echo $RESULT2
+		#fi
 	done
 done
