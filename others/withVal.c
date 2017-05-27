@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <sys/shm.h>
+#include <sys/wait.h>
 #include <stdlib.h>
 #include <string.h>
 #define TRUE 1
@@ -50,7 +51,7 @@ int main(int argc, char * argv[]) {
 
 
 	// make two child process 
-	printf("Main process id = %d (parent PID = %d)\n", (int)getpid(),(int)getppid());
+//	printf("Main process id = %d (parent PID = %d)\n", (int)getpid(),(int)getppid());
 	*ptr = 0;
 	// make first child 
 	child_pid =  fork();
