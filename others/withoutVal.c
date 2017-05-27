@@ -9,7 +9,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+
 #include <wait.h>
+
+
+
 
 #define TRUE 1
 #define FALSE 0
@@ -51,11 +55,9 @@ int main(int argc, char * argv[]) {
 	}
 
 
-
+	*ptr =0;
 	// make two child process 
-	printf("Main process id = %d (parent PID = %d)\n", (int)getpid(),(int)getppid());
-	*ptr = 0;
-	// make first child 
+//	printf("Main process id = %d (parent PID = %d)\n", (int)getpid(),(int)getppid());
 	child_pid =  fork();
 
 	if (child_pid !=0)
@@ -65,6 +67,7 @@ int main(int argc, char * argv[]) {
 		// parent waiting for child to finish and show finial value of shared memeory
 		if (child_pid != 0)
 		{
+			wait(&status);
 			wait(&status);
 			printf("Shared variable : %d\n",*ptr);
 		}
@@ -82,8 +85,8 @@ int main(int argc, char * argv[]) {
 				usleep(slp);
 
 				(*ptr)++;
-				printf("Shared memory has been plused : %d\n",*ptr);
-				fflush(stdout);
+//				printf("Shared memory has been plused : %d\n",*ptr);
+//				fflush(stdout);
 				//usleep(slp);
 
 			}
@@ -103,8 +106,8 @@ int main(int argc, char * argv[]) {
 			usleep(slp);
 
 			(*ptr)--;
-			printf("Shared memory has been minoused : %d\n",*ptr);
-			fflush(stdout);
+//			printf("Shared memory has been minoused : %d\n",*ptr);
+//			fflush(stdout);
 			//usleep(slp);
 
 		}
