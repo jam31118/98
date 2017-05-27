@@ -19,6 +19,7 @@ typedef struct sh_data {
 	int buffer[BUFSIZE];
 	int SUM;
 	int *write_ptr, *read_ptr;
+	int write_idx, read_idx;
 } sh_data_t;
 
 int producer(sh_data_t *sh_data_p, sem_t *empty, sem_t *mutex, sem_t *full) {
@@ -39,10 +40,6 @@ int main(int argc, char *argv[]) {
 	int totalProcNum = m + n;
 	int procAliveNum = totalProcNum;
 
-	/* Global configuration */
-	//int bufSize = 20;
-	//int n = 2; // number of processes
-
 	/* Shared memory information */
 	const char *shmName = "/SHM";
 	size_t SIZE = sizeof(sh_data_t);
@@ -61,6 +58,8 @@ int main(int argc, char *argv[]) {
 	int i; for (i=0; i<BUFSIZE; i++) *(sh_data_p->buffer + i) = 0;
 	sh_data_p->write_ptr = sh_data_p->buffer;
 	sh_data_p->read_ptr = sh_data_p->buffer;
+	sh_data_p->write_idx = 0;
+	sh_data_p->read_idx = 0;
 		
 	/* Semaphore information */
 	const char *fullName = "/FULL";
