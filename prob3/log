@@ -1,0 +1,4 @@
+[ LOG ] Child(PID==32766) exited with status 0x0
+[ LOG ] Child(PID==4197680) exited with status 0x0
+[ LOG ] I'm in Comsumers PID==22121, PPID==1345, SUM == 0
+[ LOG ] I'm in Producers PID==22120, PPID==22118, SUM == 0

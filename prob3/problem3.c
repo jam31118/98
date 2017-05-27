@@ -22,12 +22,20 @@ typedef struct sh_data {
 	int write_idx, read_idx;
 } sh_data_t;
 
+void printBuffer(int *buffer) {
+	for(;buffer<buffer+BUFSIZE; buffer++) fprintf(stderr,"%d ",*buffer);
+	fprintf(stderr,"\n");
+	fflush(stderr);
+}
+
 int producer(sh_data_t *sh_data_p ,sem_t *empty, sem_t *mutex, sem_t *full){
 	int num; // idx;
 	//idx =0;
 	num = 1;
 	do{
+		fprintf(stderr,"[ LOG ] (before sema-full) I'm in Producer(PID==%d)\n",(int) getpid());
 		sem_wait(empty);
+		fprintf(stderr,"[ LOG ] (after sema-empty) I'm in Producer(PID==%d)\n",(int) getpid());
 		sem_wait(mutex);
 		
 		*sh_data_p->write_ptr = num++;
@@ -36,6 +44,8 @@ int producer(sh_data_t *sh_data_p ,sem_t *empty, sem_t *mutex, sem_t *full){
 		sem_post(mutex);
 		sem_post(full);
 		
+		fprintf(stderr,"[ LOG ] BUFFER in Producer(PID==%d) ",(int) getpid());
+		printBuffer(sh_data_p->buffer);
 	} while (num<=50);
 	return 0;
 }
@@ -43,7 +53,9 @@ int producer(sh_data_t *sh_data_p ,sem_t *empty, sem_t *mutex, sem_t *full){
 int consumer(sh_data_t *sh_data_p, sem_t *empty, sem_t *mutex , sem_t *full) {
 	//int idx; idx = 0;
 	do{
+		fprintf(stderr,"[ LOG ] (before sema-full) I'm in Consumer(PID==%d)\n",(int) getpid());
 		sem_wait(full);
+		fprintf(stderr,"[ LOG ] (after sema-full) I'm in Producer(PID==%d)\n",(int) getpid());
 		sem_wait(mutex);
 		
 		sh_data_p->SUM	+=	*sh_data_p->read_ptr;
@@ -52,6 +64,9 @@ int consumer(sh_data_t *sh_data_p, sem_t *empty, sem_t *mutex , sem_t *full) {
 			
 		sem_post(mutex);
 		sem_post(full);
+
+		fprintf(stderr,"[ LOG ] BUFFER in Producer(PID==%d) ",(int) getpid());
+		printBuffer(sh_data_p->buffer);
 	}while(1);
 	
 }
@@ -70,9 +85,10 @@ int main(int argc, char *argv[]) {
 	int m = atoi(argv[1]);
 	int n = atoi(argv[2]);
 
-	int totalProcNum = m + n;
-	int procAliveNum = totalProcNum;
-	pid_t producer_pids[m], consumer_pids[n], wait_result_pids[totalProcNum];
+//	int totalProcNum = m + n;
+	//int procAliveNum = totalProcNum;
+	pid_t producer_pids[m], consumer_pids[n];
+//	pid_t wait_result_pids[totalProcNum];
 
 	/* Shared memory information */
 	const char *shmName = "/SHM";
@@ -110,14 +126,30 @@ int main(int argc, char *argv[]) {
 
 	ch1 = fork();
 	int status = -1;
+	pid_t tmp;
 	if (ch1) {
 		/* Parent Process */
 		ch2 = fork();
 		if (ch2) {
 			/* Parent Process in deeper but same */
+			/*
 			while (procAliveNum>0) {
-				wait(&status); 
+				wait_result_pids[totalProcNum - procAliveNum] = wait(&status);
 				--procAliveNum;
+				fprintf(stderr,"[ LOG ] Child(PID==%d) exited with status 0x%x\n",
+						wait_result_pids[totalProcNum - procAliveNum], status);
+			}*/
+			for (i=0; i<m; i++) {
+				tmp = waitpid(producer_pids[i],&status,0);
+				fprintf(stderr,"[ LOG ] Producers(PID==%d) exited with status 0x%x\n",
+						tmp, status);	
+				fflush(stderr);
+			}
+			for (i=0; i<n; i++) {
+				tmp = waitpid(consumer_pids[i],&status,0);
+				fprintf(stderr,"[ LOG ] Consumers(PID==%d) exited with status 0x%x\n",
+						tmp, status);	
+				fflush(stderr);
 			}
 			printf("%d\n",sh_data_p->SUM);
 		} else {
@@ -128,8 +160,9 @@ int main(int argc, char *argv[]) {
 					fprintf(stderr,"[ERROR] Failed to fork()\n");
 					return 1;
 				} else if (consumer_pids[i] == 0) {
-					fprintf(stderr,"[ LOG ] I'm in Comsumers PID == %d, SUM == %d\n",
-							(int) getpid(),sh_data_p->SUM);
+					fprintf(stderr,"[ LOG ] I'm in Comsumers PID==%d, PPID==%d, SUM == %d\n",
+							(int) getpid(), (int) getppid(), sh_data_p->SUM);
+					fflush(stderr);
 					consumer(sh_data_p,empty_id,mutex_id,full_id);
 					return 0;
 				}
@@ -144,8 +177,9 @@ int main(int argc, char *argv[]) {
 				fprintf(stderr,"[ERROR] Failed to fork()\n");
 				return 1;
 			} else if (producer_pids[i] == 0) {
-				fprintf(stderr,"[ LOG ] I'm in Producers PID == %d, SUM == %d\n",
-						(int) getpid(), sh_data_p->SUM);
+				fprintf(stderr,"[ LOG ] I'm in Producers PID==%d, PPID==%d, SUM == %d\n",
+						(int) getpid(), (int) getppid(), sh_data_p->SUM);
+				fflush(stderr);
 				producer(sh_data_p,empty_id,mutex_id,full_id);
 				return 0;
 			}
