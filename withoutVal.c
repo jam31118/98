@@ -8,6 +8,9 @@
 #include <sys/shm.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include <wait.h>
+
 #define TRUE 1
 #define FALSE 0
 int isStringDouble(char *s);
@@ -17,7 +20,7 @@ int main(int argc, char * argv[]) {
 	const char *name ="/OS";
 	int shm_fd;
 	int *ptr;
-	int register1, register2;
+//	int register1, register2;
 	double slp;
 	//const int SIZE 4096;
 	//argv 
