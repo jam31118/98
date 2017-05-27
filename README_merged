@@ -1,0 +1,341 @@
+<Problem 1>
+this is the source code of problem 1.
+------------------------------------
+#define _GNU_SOURCE
+
+#include <stdio.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <wait.h>
+#include <stdlib.h>
+
+#include <sys/shm.h>
+#include <sys/mman.h>
+#include <fcntl.h>
+
+//increasing shared data value function for child process 1
+int ch1task(int *sh_data_p, int N, int sleeptime)
+{
+	usleep(sleeptime);
+	int i;
+	for(i=0;i<N;i++) (*sh_data_p)++; // = *sh_data_p +1;
+	return 0;
+}
+
+//decreasing shared data value function for child process 2
+int ch2task(int *sh_data_p, int N, int sleeptime)
+{
+	usleep(sleeptime);
+	int i;
+	for(i=0; i<N; i++) (*sh_data_p)--; // = *sh_data_p -1;
+	return 0;
+}
+
+int main(int argc, char *argv[]) {
+	/* Parsing */
+	if (argc <= 1)
+	{
+		printf("Enter sleeptimes\n");
+		return 1;
+	}
+	int sleeptime1 = atoi(argv[1]);
+	int sleeptime2 = atoi(argv[2]);
+
+	/* Global configuration */
+	int N = 10;
+	int n = 2; // number of processes
+
+	/* Shared memory information */
+	const char *shmName = "/SHM";
+	size_t SIZE = sizeof(int);
+	int *sh_data_p;
+	int shm_fd;
+	
+	/* Shared memory declaration */
+	shm_fd = shm_open(shmName, O_CREAT | O_RDWR, 0666);
+	if (shm_fd == -1) 
+	{
+		printf("Shared failed in CREATing\n"); 
+		return 1;
+	}
+	if (ftruncate(shm_fd,SIZE))
+	{
+		printf("[ERROR] Failed to ftruncate()\n");
+	}
+	sh_data_p = (int *) mmap(0,SIZE,PROT_READ|PROT_WRITE,MAP_SHARED,shm_fd,0);
+	if(sh_data_p == MAP_FAILED) 
+	{
+		printf("Map Failed\n");
+		return 1;
+	}
+
+	/* Shared Data initialization */
+	*sh_data_p = 0;
+
+
+	/* Creating Child Processes */
+	pid_t ch1, ch2;
+
+	ch1 = fork();
+	if (ch1)
+	{
+		/* Parent Process */
+		ch2 = fork();
+		if (ch2)
+		{
+			/* Parent Process in deeper but same */
+			while (n>0) {wait(NULL); --n;}
+			printf("%d\n",*sh_data_p);
+		}
+		else
+		{
+			/* Child Process 02 */
+			ch2task(sh_data_p,N,sleeptime1);
+		}
+
+	}
+	else
+	{
+		/* Child Process 01 */
+		ch1task(sh_data_p,N,sleeptime2);
+	}
+	return 0;
+}
+------------------------------------
+
+
+
+
+To execute the same file for 1000 times, use .sh file with the following code.
+------------------------------------
+#!/bin/bash
+PROGRAM=./problem1
+
+for i in {0..100..10} 
+	# Changing Delay time of process 1
+	# relative to process 2
+do
+	echo "The delay is $i"
+	for j in {1..1000} 
+		# Repeat with same delay time setting
+		# in order to find the race condition case
+	do
+		RESULT1=$($PROGRAM 0 $i)
+		if [ $RESULT1 != 0 ]
+		then
+			echo $RESULT1
+		fi
+		#RESULT2=$($PROGRAM $i 0)
+		#if [ $RESULT2 != 0 ]
+		#then
+		#	echo $RESULT2
+		#fi
+	done
+done
+------------------------------------
+
+
+
+
+This is the result. Race condition is occurred.
+(if there is no race condition, only "The delay is ~~" sentences are printed.)
+------------------------------------
+The delay is 0
+10
+The delay is 10
+10
+The delay is 20
+10
+10
+-10
+-10
+10
+The delay is 30
+The delay is 40
+10
+-10
+The delay is 50
+-10
+The delay is 60
+The delay is 70
+The delay is 80
+-10
+The delay is 90
+The delay is 100
+------------------------------------
+
+
+
+
+<Problem 2>
+the following source code is the solution of problem 2
+--------------------------------------
+#define _GNU_SOURCE
+
+#include <stdio.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <wait.h>
+#include <stdlib.h>
+
+#include <sys/shm.h>
+#include <sys/mman.h>
+#include <fcntl.h>
+
+#include <sys/stat.h>
+#include <semaphore.h>
+
+//increasing shared data value function for child process 1
+int ch1task(int *sh_data_p, int N, int sleeptime)
+{
+	usleep(sleeptime);
+	int i;
+	for(i=0;i<N;i++) (*sh_data_p)++; // = *sh_data_p +1;
+	return 0;
+}
+
+//decreasing shared data value function for child process 2
+int ch2task(int *sh_data_p, int N, int sleeptime) 
+{
+	usleep(sleeptime);
+	int i;
+	for(i=0; i<N; i++) (*sh_data_p)--; // = *sh_data_p -1;
+	return 0;
+}
+
+int main(int argc, char *argv[]) 
+{
+	/* Parsing */
+	if (argc <= 1)
+	{
+		printf("Enter sleeptimes\n");
+		return 1;
+	}
+	int sleeptime1 = atoi(argv[1]);
+	int sleeptime2 = atoi(argv[2]);
+
+	/* Global configuration */
+	int N = 10;
+	int n = 2; // number of processes
+
+	/* Shared memory information */
+	const char *shmName = "/SHM";
+	size_t SIZE = sizeof(int);
+	int *sh_data_p;
+	int shm_fd;
+	
+	/* Shared memory declaration */
+	shm_fd = shm_open(shmName, O_CREAT | O_RDWR, 0666);
+	if (shm_fd == -1)
+	{
+		printf("Shared failed in CREATing\n");
+		return 1;
+	}
+	if (ftruncate(shm_fd,SIZE))
+	{
+		printf("[ERROR] Failed to ftruncate()\n");
+	}
+	sh_data_p = (int *) mmap(0,SIZE,PROT_READ|PROT_WRITE,MAP_SHARED,shm_fd,0);
+	if(sh_data_p == MAP_FAILED)
+	{
+		printf("Map Failed\n");
+		return 1;
+	}
+
+	/* Shared Data initialization */
+	*sh_data_p = 0;
+
+		
+	/* Semaphore information */
+	const char *semName = "/SEM";
+	
+	/* Semaphore ID generation */
+	sem_t *sem_id = sem_open(semName, O_CREAT, S_IRUSR | S_IWUSR, 1);
+
+	/* Creating Child Processes */
+	pid_t ch1, ch2;
+
+	ch1 = fork();
+	if (ch1) 
+	{
+		/* Parent Process */
+		ch2 = fork();
+		if (ch2) 
+		{
+			/* Parent Process in deeper but same */
+			while (n>0) {wait(NULL); --n;}
+			printf("%d\n",*sh_data_p);
+		} 
+		else 
+		{
+			/* Child Process 02 */
+			sem_wait(sem_id);
+			ch2task(sh_data_p,N,sleeptime1);
+			sem_post(sem_id);
+		}
+
+	} 
+	else 
+	{
+		/* Child Process 01 */
+		sem_wait(sem_id);
+		ch1task(sh_data_p,N,sleeptime2);
+		sem_post(sem_id);
+	}
+	return 0;
+}
+-----------------------------------------
+
+
+
+
+To execute the code above for 1000 times, use .sh file with the following code.
+-----------------------------------------
+#!/bin/bash
+PROGRAM=./problem2
+
+for i in {0..100..10} 
+	# Changing Delay time of process 1
+	# relative to process 2
+do
+	echo "The delay is $i"
+	for j in {1..1000} 
+		# Repeat with same delay time setting
+		# in order to find the race condition case
+	do
+		RESULT=$($PROGRAM 0 $i)
+		if [ $RESULT != 0 ]
+		then
+			echo $RESULT
+		fi
+	done
+done
+-----------------------------------------
+
+
+
+
+This is the result. As you see, there is no race condition.
+-----------------------------------------
+The delay is 0
+The delay is 10
+The delay is 20
+The delay is 30
+The delay is 40
+The delay is 50
+The delay is 60
+The delay is 70
+The delay is 80
+The delay is 90
+The delay is 100
+-----------------------------------------
+
+
+
+
+<Problem 3>
+Please refer to these shared variables we added before you read the source code of problem 3.
+(EXCEPT circular buffer[20] and SUM)
+-----------------------------------------
+int *write_ptr, *read_ptr;
+

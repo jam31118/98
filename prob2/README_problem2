@@ -1,3 +1,5 @@
+the following source code is the solution of problem 2
+--------------------------------------
 #define _GNU_SOURCE
 
 #include <stdio.h>
@@ -112,3 +114,47 @@ int main(int argc, char *argv[])
 	}
 	return 0;
 }
+-----------------------------------------
+
+
+
+To execute the code above for 1000 times, we made .sh file with the following code.
+-----------------------------------------
+#!/bin/bash
+PROGRAM=./problem2
+
+for i in {0..100..10} 
+	# Changing Delay time of process 1
+	# relative to process 2
+do
+	echo "The delay is $i"
+	for j in {1..1000} 
+		# Repeat with same delay time setting
+		# in order to find the race condition case
+	do
+		RESULT=$($PROGRAM 0 $i)
+		if [ $RESULT != 0 ]
+		then
+			echo $RESULT
+		fi
+	done
+done
+-----------------------------------------
+
+
+
+
+This is the result. As you see, there is no race condition.
+-----------------------------------------
+The delay is 0
+The delay is 10
+The delay is 20
+The delay is 30
+The delay is 40
+The delay is 50
+The delay is 60
+The delay is 70
+The delay is 80
+The delay is 90
+The delay is 100
+-----------------------------------------
