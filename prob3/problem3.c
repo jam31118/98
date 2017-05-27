@@ -21,17 +21,11 @@ typedef struct sh_data {
 	int *write_ptr, *read_ptr;
 } sh_data_t;
 
-int ch1task(int *sh_data_p, int N, int sleeptime) {
-	usleep(sleeptime);
-	int i;
-	for(i=0;i<N;i++) (*sh_data_p)++; // = *sh_data_p +1;
+int producer(sh_data_t *sh_data_p, sem_t *empty, sem_t *mutex, sem_t *full) {
 	return 0;
 }
 
-int ch2task(int *sh_data_p, int N, int sleeptime) {
-	usleep(sleeptime);
-	int i;
-	for(i=0; i<N; i++) (*sh_data_p)--; // = *sh_data_p -1;
+int consumer(sh_data_t *sh_data_p, sem_t *empty, sem_t *mutex, sem_t *full) {
 	return 0;
 }
 
@@ -40,6 +34,10 @@ int main(int argc, char *argv[]) {
 	if (argc <= 1) {printf("Enter m, n values\n");return 1;}
 	int m = atoi(argv[1]);
 	int n = atoi(argv[2]);
+
+	pid_t producer_pids[m], consumer_pids[n];
+	int totalProcNum = m + n;
+	int procAliveNum = totalProcNum;
 
 	/* Global configuration */
 	//int bufSize = 20;
@@ -61,12 +59,18 @@ int main(int argc, char *argv[]) {
 	/* Shared Data initialization */
 	sh_data_p->SUM = 0;
 	int i; for (i=0; i<BUFSIZE; i++) *(sh_data_p->buffer + i) = 0;
+	sh_data_p->write_ptr = sh_data_p->buffer;
+	sh_data_p->read_ptr = sh_data_p->buffer;
 		
 	/* Semaphore information */
-	const char *semName = "/SEM";
+	const char *fullName = "/FULL";
+	const char *mutexName = "/MUTEX";
+	const char *emptyName = "/EMPTY";
 	
 	/* Semaphore ID generation */
-	sem_t *sem_id = sem_open(semName, O_CREAT, S_IRUSR | S_IWUSR, 1);
+	sem_t *full_id = sem_open(fullName, O_CREAT, S_IRUSR | S_IWUSR, 1);
+	sem_t *empty_id = sem_open(emptyName, O_CREAT, S_IRUSR | S_IWUSR, 1);
+	sem_t *mutex_id = sem_open(mutexName, O_CREAT, S_IRUSR | S_IWUSR, 1);
 
 	/* Creating Child Processes */
 	pid_t ch1, ch2;
@@ -74,32 +78,35 @@ int main(int argc, char *argv[]) {
 	ch1 = fork();
 	if (ch1) {
 		/* Parent Process */
-	//	printf("I'm PARENT (PID == %d)\n",
-	//			(int) getpid());
-		//wait(NULL);
 		ch2 = fork();
 		if (ch2) {
 			/* Parent Process in deeper but same */
-		//	printf("[PID == %d] I'm PARENT, in inner shell \n",
-		//			(int) getpid());
-			while (n>0) {wait(NULL); --n;}
-			printf("%d\n",*sh_data_p);
+			while (procAliveNum>0) {wait(NULL); --procAliveNum;}
+			printf("%d\n",sh_data_p->SUM);
 		} else {
-			/* Child Process 02 */
-		//	printf("[PID == %d] I'm CHILD \n",
-		//			(int) getpid());
-			sem_wait(sem_id);
-			ch2task(sh_data_p,N,sleeptime1);
-			sem_post(sem_id);
+			/* Child Processes: Consumers */
+			for ( i = 0; i < n; ++i ) {
+				consumer_pids[i] = fork();
+				if (consumer_pids[i] < 0) {
+					fprintf(stderr,"[ERROR] Failed to fork()\n");
+					return 1;
+				} else if (consumer_pids[i] == 0) {
+					consumer(sh_data_p,empty_id,mutex_id,full_id);
+				}
+			}
 		}
 
 	} else {
-		/* Child Process 01 */
-	//	printf("[PID == %d] I'm CHILD\n",
-	//			(int) getpid());
-		sem_wait(sem_id);
-		ch1task(sh_data_p,N,sleeptime2);
-		sem_post(sem_id);
+		/* Child Processes: Producers */
+		for ( i = 0; i < m; ++i ) {
+			producer_pids[i] = fork();
+			if (producer_pids[i] < 0) {
+				fprintf(stderr,"[ERROR] Failed to fork()\n");
+				return 1;
+			} else if (producer_pids[i] == 0) {
+				producer(sh_data_p,empty_id,mutex_id,full_id);
+			}
+		}
 	}
 	return 0;
 }

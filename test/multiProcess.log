@@ -1,0 +1,64 @@
+I'm in Parent with pid_list[0] == 16848
+I'm in Parent with pid_list[1] == 16849
+I'm in Parent with pid_list[2] == 16850
+I'm in Parent with pid_list[3] == 16851
+I'm in Parent with pid_list[0] == 16848
+I'm in Parent with pid_list[1] == 16849
+I'm in Parent with pid_list[2] == 16850
+I'm in Child with PID == 16851, PPID == 16847
+I'm in Parent with pid_list[0] == 16848
+I'm in Child with PID == 16849, PPID == 1345
+I'm in Parent with pid_list[2] == 16854
+I'm in Parent with pid_list[3] == 16856
+I'm in Child with PID == 16848, PPID == 16847
+I'm in Child with PID == 16852, PPID == 16848
+I'm in Parent with pid_list[2] == 16855
+I'm in Parent with pid_list[3] == 16857
+I'm in Child with PID == 16848, PPID == 16847
+I'm in Parent with pid_list[1] == 16852
+I'm in Parent with pid_list[2] == 16853
+I'm in Parent with pid_list[3] == 16858
+I'm in Child with PID == 16848, PPID == 16847
+I'm in Child with PID == 16852, PPID == 16848
+I'm in Child with PID == 16855, PPID == 1345
+I'm in Parent with pid_list[3] == 16859
+I'm in Child with PID == 16848, PPID == 16847
+I'm in Parent with pid_list[1] == 16852
+I'm in Child with PID == 16853, PPID == 1345
+I'm in Parent with pid_list[3] == 16860
+I'm in Parent with pid_list[0] == 16848
+I'm in Parent with pid_list[1] == 16849
+I'm in Child with PID == 16850, PPID == 1345
+I'm in Parent with pid_list[3] == 16861
+I'm in Child with PID == 16848, PPID == 16847
+I'm in Parent with pid_list[1] == 16852
+I'm in Parent with pid_list[2] == 16853
+I'm in Child with PID == 16858, PPID == 1345
+I'm in Parent with pid_list[0] == 16848
+I'm in Parent with pid_list[1] == 16849
+I'm in Child with PID == 16850, PPID == 1345
+I'm in Child with PID == 16861, PPID == 1345
+I'm in Parent with pid_list[0] == 16848
+I'm in Child with PID == 16849, PPID == 1345
+I'm in Child with PID == 16854, PPID == 1345
+I'm in Parent with pid_list[3] == 16862
+I'm in Child with PID == 16848, PPID == 16847
+I'm in Child with PID == 16852, PPID == 16848
+I'm in Parent with pid_list[2] == 16855
+I'm in Child with PID == 16857, PPID == 1345
+I'm in Parent with pid_list[0] == 16848
+I'm in Child with PID == 16849, PPID == 1345
+I'm in Child with PID == 16854, PPID == 1345
+I'm in Child with PID == 16862, PPID == 1345
+I'm in Child with PID == 16848, PPID == 16847
+I'm in Child with PID == 16852, PPID == 16848
+I'm in Child with PID == 16855, PPID == 1345
+I'm in Child with PID == 16859, PPID == 1345
+I'm in Parent with pid_list[0] == 16848
+I'm in Child with PID == 16849, PPID == 1345
+I'm in Parent with pid_list[2] == 16854
+I'm in Child with PID == 16856, PPID == 1345
+I'm in Child with PID == 16848, PPID == 16847
+I'm in Parent with pid_list[1] == 16852
+I'm in Child with PID == 16853, PPID == 1345
+I'm in Child with PID == 16860, PPID == 1345
