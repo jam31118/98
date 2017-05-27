@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <wait.h>
+#include <sys/wait.h>
 #include <stdlib.h>
 
 #include <sys/shm.h>
@@ -20,6 +20,7 @@ typedef struct sh_data {
 	int SUM;
 	int *write_ptr, *read_ptr;
 	int write_idx, read_idx;
+	int consumed, m;
 } sh_data_t;
 
 int producer(sh_data_t *sh_data_p ,sem_t *empty, sem_t *mutex, sem_t *full){
@@ -49,11 +50,12 @@ int consumer(sh_data_t *sh_data_p, sem_t *empty, sem_t *mutex , sem_t *full) {
 		sh_data_p->SUM	+=	*sh_data_p->read_ptr;
 		*sh_data_p->read_ptr = 0;
 		sh_data_p->read_ptr = (sh_data_p->buffer+((sh_data_p->read_idx++)%20));
-			
+		sh_data_p->consumed++;	
 		sem_post(mutex);
 		sem_post(full);
-	}while(1);
-	
+	}while(sh_data_p->consumed <= (sh_data_p->m)*50);
+
+	return 0;	
 }
 /*
 int producer(sh_data_t *sh_data_p, sem_t *empty, sem_t *mutex, sem_t *full) {
@@ -94,7 +96,8 @@ int main(int argc, char *argv[]) {
 	sh_data_p->read_ptr = sh_data_p->buffer;
 	sh_data_p->write_idx = 0;
 	sh_data_p->read_idx = 0;
-		
+	sh_data_p->consumed =0;
+	sh_data_p->m = m;
 	/* Semaphore information */
 	const char *fullName = "/FULL";
 	const char *mutexName = "/MUTEX";
@@ -109,7 +112,7 @@ int main(int argc, char *argv[]) {
 	pid_t ch1, ch2;
 
 	ch1 = fork();
-	int status = -1;
+	int status=0;
 	if (ch1) {
 		/* Parent Process */
 		ch2 = fork();
