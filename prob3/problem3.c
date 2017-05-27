@@ -22,13 +22,47 @@ typedef struct sh_data {
 	int write_idx, read_idx;
 } sh_data_t;
 
+int producer(sh_data_t *sh_data_p ,sem_t *empty, sem_t *mutex, sem_t *full){
+	int num; // idx;
+	//idx =0;
+	num = 1;
+	do{
+		sem_wait(empty);
+		sem_wait(mutex);
+		
+		*sh_data_p->write_ptr = num++;
+		sh_data_p->write_ptr = (sh_data_p->buffer+((sh_data_p->write_idx++)%20));
+		
+		sem_post(mutex);
+		sem_post(full);
+		
+	} while (num<=50);
+	return 0;
+}
+
+int consumer(sh_data_t *sh_data_p, sem_t *empty, sem_t *mutex , sem_t *full) {
+	//int idx; idx = 0;
+	do{
+		sem_wait(full);
+		sem_wait(mutex);
+		
+		sh_data_p->SUM	+=	*sh_data_p->read_ptr;
+		*sh_data_p->read_ptr = 0;
+		sh_data_p->read_ptr = (sh_data_p->buffer+((sh_data_p->read_idx++)%20));
+			
+		sem_post(mutex);
+		sem_post(full);
+	}while(1);
+	
+}
+/*
 int producer(sh_data_t *sh_data_p, sem_t *empty, sem_t *mutex, sem_t *full) {
 	return 0;
 }
 
 int consumer(sh_data_t *sh_data_p, sem_t *empty, sem_t *mutex, sem_t *full) {
 	return 0;
-}
+}*/
 
 int main(int argc, char *argv[]) {
 	/* Parsing */
@@ -36,9 +70,9 @@ int main(int argc, char *argv[]) {
 	int m = atoi(argv[1]);
 	int n = atoi(argv[2]);
 
-	pid_t producer_pids[m], consumer_pids[n];
 	int totalProcNum = m + n;
 	int procAliveNum = totalProcNum;
+	pid_t producer_pids[m], consumer_pids[n], wait_result_pids[totalProcNum];
 
 	/* Shared memory information */
 	const char *shmName = "/SHM";
@@ -68,19 +102,23 @@ int main(int argc, char *argv[]) {
 	
 	/* Semaphore ID generation */
 	sem_t *full_id = sem_open(fullName, O_CREAT, S_IRUSR | S_IWUSR, 1);
-	sem_t *empty_id = sem_open(emptyName, O_CREAT, S_IRUSR | S_IWUSR, 1);
-	sem_t *mutex_id = sem_open(mutexName, O_CREAT, S_IRUSR | S_IWUSR, 1);
+	sem_t *empty_id = sem_open(emptyName, O_CREAT, S_IRUSR | S_IWUSR, BUFSIZE);
+	sem_t *mutex_id = sem_open(mutexName, O_CREAT, S_IRUSR | S_IWUSR, 0);
 
 	/* Creating Child Processes */
 	pid_t ch1, ch2;
 
 	ch1 = fork();
+	int status = -1;
 	if (ch1) {
 		/* Parent Process */
 		ch2 = fork();
 		if (ch2) {
 			/* Parent Process in deeper but same */
-			while (procAliveNum>0) {wait(NULL); --procAliveNum;}
+			while (procAliveNum>0) {
+				wait(&status); 
+				--procAliveNum;
+			}
 			printf("%d\n",sh_data_p->SUM);
 		} else {
 			/* Child Processes: Consumers */
@@ -90,7 +128,10 @@ int main(int argc, char *argv[]) {
 					fprintf(stderr,"[ERROR] Failed to fork()\n");
 					return 1;
 				} else if (consumer_pids[i] == 0) {
+					fprintf(stderr,"[ LOG ] I'm in Comsumers PID == %d, SUM == %d\n",
+							(int) getpid(),sh_data_p->SUM);
 					consumer(sh_data_p,empty_id,mutex_id,full_id);
+					return 0;
 				}
 			}
 		}
@@ -103,7 +144,10 @@ int main(int argc, char *argv[]) {
 				fprintf(stderr,"[ERROR] Failed to fork()\n");
 				return 1;
 			} else if (producer_pids[i] == 0) {
+				fprintf(stderr,"[ LOG ] I'm in Producers PID == %d, SUM == %d\n",
+						(int) getpid(), sh_data_p->SUM);
 				producer(sh_data_p,empty_id,mutex_id,full_id);
+				return 0;
 			}
 		}
 	}
