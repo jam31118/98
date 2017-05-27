@@ -65,11 +65,17 @@ int consumer(sh_data_t *sh_data_p, sem_t *empty, sem_t *mutex , sem_t *full) {
 		sh_data_p->consumed++;	
 		sem_post(mutex);
 		sem_post(full);
+<<<<<<< HEAD
 
 		fprintf(stderr,"[ LOG ] BUFFER in Producer(PID==%d) ",(int) getpid());
 		printBuffer(sh_data_p->buffer);
 	}while(1);
 	
+=======
+	}while(sh_data_p->consumed <= (sh_data_p->m)*50);
+
+	return 0;	
+>>>>>>> 0708614ee3375bed232464e825d0093773f5b4f4
 }
 /*
 int producer(sh_data_t *sh_data_p, sem_t *empty, sem_t *mutex, sem_t *full) {
@@ -127,8 +133,12 @@ int main(int argc, char *argv[]) {
 	pid_t ch1, ch2;
 
 	ch1 = fork();
+<<<<<<< HEAD
 	int status = -1;
 	pid_t tmp;
+=======
+	int status=0;
+>>>>>>> 0708614ee3375bed232464e825d0093773f5b4f4
 	if (ch1) {
 		/* Parent Process */
 		ch2 = fork();
