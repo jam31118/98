@@ -10,11 +10,12 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 
+#include <sys/stat.h>
+#include <semaphore.h>
+
 int ch1task(int *sh_data_p, int N, int sleeptime) {
 	usleep(sleeptime);
 	int i;
-//	printf("[PID == %d] I'm in ch1task \n",
-//			(int) getpid());
 	for(i=0;i<N;i++) (*sh_data_p)++; // = *sh_data_p +1;
 	return 0;
 }
@@ -22,8 +23,6 @@ int ch1task(int *sh_data_p, int N, int sleeptime) {
 int ch2task(int *sh_data_p, int N, int sleeptime) {
 	usleep(sleeptime);
 	int i;
-//	printf("[PID == %d] I'm in ch2task \n",
-//			(int) getpid());
 	for(i=0; i<N; i++) (*sh_data_p)--; // = *sh_data_p -1;
 	return 0;
 }
@@ -43,7 +42,8 @@ int main(int argc, char *argv[]) {
 	size_t SIZE = sizeof(int);
 	int *sh_data_p;
 	int shm_fd;
-
+	
+	/* Shared memory declaration */
 	shm_fd = shm_open(shmName, O_CREAT | O_RDWR, 0666);
 	if (shm_fd == -1) {printf("Shared failed in CREATing\n"); return 1;}
 	if (ftruncate(shm_fd,SIZE)) printf("[ERROR] Failed to ftruncate()\n");
@@ -52,6 +52,13 @@ int main(int argc, char *argv[]) {
 
 	/* Shared Data initialization */
 	*sh_data_p = 0;
+
+		
+	/* Semaphore information */
+	const char *semName = "/SEM";
+	
+	/* Semaphore ID generation */
+	sem_t *sem_id = sem_open(semName, O_CREAT, S_IRUSR | S_IWUSR, 1);
 
 	/* Creating Child Processes */
 	pid_t ch1, ch2;
@@ -73,14 +80,18 @@ int main(int argc, char *argv[]) {
 			/* Child Process 02 */
 		//	printf("[PID == %d] I'm CHILD \n",
 		//			(int) getpid());
+			sem_wait(sem_id);
 			ch2task(sh_data_p,N,sleeptime1);
+			sem_post(sem_id);
 		}
 
 	} else {
 		/* Child Process 01 */
 	//	printf("[PID == %d] I'm CHILD\n",
 	//			(int) getpid());
+		sem_wait(sem_id);
 		ch1task(sh_data_p,N,sleeptime2);
+		sem_post(sem_id);
 	}
 	return 0;
 }

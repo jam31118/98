@@ -1,5 +1,5 @@
 #!/bin/bash
-PROGRAM=./problem1
+PROGRAM=./problem2
 
 for i in {0..100..10} 
 	# Changing Delay time of process 1
