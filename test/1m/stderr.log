@@ -1,0 +1,145 @@
+[ LOG ] [PID==4020] Value of empty == 20
+[ LOG ] [PID==4021] Value of Consumer full == 0
+[ LOG ] [PID==4020] Value of mutex == 1
+
+
+
+=======PRODUCER-MUTEX-START======[SUM=0]
+[ LOG ] (after mutex) I'm in Producer(PID==4020), num == 1, buffer == 0x7f5cfe18f000
+=======PRODUCER-MUTEX-ENDS======[SUM=1]
+[ LOG ] [PID==4020] [After POST] Value of mutex == 1
+[ LOG ] BUFFER in Producer(PID==4020) 
+
+
+
+[ LOG ] [PID==4021] Value of Consumer mutex == 1
+[ LOG ] [PID==4020] Value of empty == 19
+[ LOG ] [PID==4020] Value of mutex == 1
+
+
+
++++++CONSUMER-MUTEX-START+++++++[SUM=1]
++++++CONSUMER-MUTEX-ENDS++++++++[SUM=1]
+
+
+[ LOG ] [PID==4021] [After POST] Value of mutex == 1
+
+
+
+=======PRODUCER-MUTEX-START======[SUM=1]
+
+
+
+[ LOG ] (after mutex) I'm in Producer(PID==4020), num == 2, buffer == 0x7f5cfe18f000
+=======PRODUCER-MUTEX-ENDS======[SUM=2]
+[ LOG ] [PID==4020] [After POST] Value of mutex == 1
+[ LOG ] BUFFER in Producer(PID==4020) 
+
+
+
+[ LOG ] [PID==4020] Value of empty == 19
+[ LOG ] [PID==4020] Value of mutex == 1
+
+
+
+=======PRODUCER-MUTEX-START======[SUM=2]
+[ LOG ] (after mutex) I'm in Producer(PID==4020), num == 3, buffer == 0x7f5cfe18f000
+=======PRODUCER-MUTEX-ENDS======[SUM=3]
+[ LOG ] [PID==4020] [After POST] Value of mutex == 1
+[ LOG ] BUFFER in Producer(PID==4020) 
+
+
+
+[ LOG ] [PID==4020] Value of empty == 18
+[ LOG ] [PID==4020] Value of mutex == 1
+
+
+
+=======PRODUCER-MUTEX-START======[SUM=3]
+[ LOG ] (after mutex) I'm in Producer(PID==4020), num == 4, buffer == 0x7f5cfe18f000
+=======PRODUCER-MUTEX-ENDS======[SUM=4]
+[ LOG ] [PID==4020] [After POST] Value of mutex == 1
+[ LOG ] BUFFER in Producer(PID==4020) 
+
+
+
+[ LOG ] [PID==4020] Value of empty == 17
+[ LOG ] [PID==4020] Value of mutex == 1
+
+
+
+=======PRODUCER-MUTEX-START======[SUM=4]
+[ LOG ] (after mutex) I'm in Producer(PID==4020), num == 5, buffer == 0x7f5cfe18f000
+=======PRODUCER-MUTEX-ENDS======[SUM=5]
+[ LOG ] [PID==4020] [After POST] Value of mutex == 1
+[ LOG ] BUFFER in Producer(PID==4020) 
+
+
+
+[ LOG ] [PID==4020] Value of empty == 16
+[ LOG ] [PID==4020] Value of mutex == 1
+
+
+
+=======PRODUCER-MUTEX-START======[SUM=5]
+[ LOG ] (after mutex) I'm in Producer(PID==4020), num == 6, buffer == 0x7f5cfe18f000
+=======PRODUCER-MUTEX-ENDS======[SUM=6]
+[ LOG ] [PID==4020] [After POST] Value of mutex == 1
+[ LOG ] BUFFER in Producer(PID==4020) 
+
+
+
+[ LOG ] [PID==4020] Value of empty == 15
+[ LOG ] [PID==4020] Value of mutex == 1
+
+
+
+=======PRODUCER-MUTEX-START======[SUM=6]
+[ LOG ] (after mutex) I'm in Producer(PID==4020), num == 7, buffer == 0x7f5cfe18f000
+=======PRODUCER-MUTEX-ENDS======[SUM=7]
+[ LOG ] [PID==4020] [After POST] Value of mutex == 1
+[ LOG ] BUFFER in Producer(PID==4020) 
+
+
+
+[ LOG ] [PID==4020] Value of empty == 14
+[ LOG ] [PID==4020] Value of mutex == 1
+[ LOG ] Producers(PID==4021) exited with status 0x0
+
+
+
+=======PRODUCER-MUTEX-START======[SUM=7]
+[ LOG ] (after mutex) I'm in Producer(PID==4020), num == 8, buffer == 0x7f5cfe18f000
+=======PRODUCER-MUTEX-ENDS======[SUM=8]
+[ LOG ] [PID==4020] [After POST] Value of mutex == 1
+[ LOG ] BUFFER in Producer(PID==4020) 
+
+
+
+[ LOG ] [PID==4020] Value of empty == 13
+[ LOG ] [PID==4020] Value of mutex == 1
+
+
+
+=======PRODUCER-MUTEX-START======[SUM=8]
+[ LOG ] (after mutex) I'm in Producer(PID==4020), num == 9, buffer == 0x7f5cfe18f000
+=======PRODUCER-MUTEX-ENDS======[SUM=9]
+[ LOG ] [PID==4020] [After POST] Value of mutex == 1
+[ LOG ] BUFFER in Producer(PID==4020) 
+
+
+
+[ LOG ] [PID==4020] Value of empty == 12
+[ LOG ] [PID==4020] Value of mutex == 1
+
+
+
+=======PRODUCER-MUTEX-START======[SUM=9]
+[ LOG ] (after mutex) I'm in Producer(PID==4020), num == 10, buffer == 0x7f5cfe18f000
+=======PRODUCER-MUTEX-ENDS======[SUM=10]
+[ LOG ] [PID==4020] [After POST] Value of mutex == 1
+[ LOG ] BUFFER in Producer(PID==4020) 
+
+
+
+[ LOG ] Consumers(PID==4020) exited with status 0x0
