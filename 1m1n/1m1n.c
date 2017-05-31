@@ -238,6 +238,15 @@ int main(int argc, char *argv[]) {
      * so the printf and fprintf yield its content immediately */
 	setbuf(stderr,NULL);
 	setbuf(stdout,NULL);
+	
+	/* Parsing */
+	if (argc <= 1)
+	{
+		printf("Enter m, n values \n");
+		return 1;
+	}
+	int m = atoi(argv[1]);
+	int n = atoi(argv[2]);
 
 	/* Shared memory information */
 	const char *shmName = "/SHM";
@@ -266,7 +275,7 @@ int main(int argc, char *argv[]) {
 	if (empty_id == SEM_FAILED) {fprintf(stderr,"empty_id is failed\n");}
 	sem_t *mutex_id = sem_open(MUTEXNAME, O_CREAT, S_IRUSR | S_IWUSR, 1);
     
-    /* Semaphore Initialization */
+	/* Semaphore Initialization */
 	sem_init(full_id,1,0);
 	sem_init(empty_id,1,BUFSIZE);
 	sem_init(mutex_id,1,1);

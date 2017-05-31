@@ -23,17 +23,8 @@ typedef struct sh_data{
 	int consumed, m_value;
 } sh_data_t;
 
-<<<<<<< HEAD
 //semaphore "mutex" is binary semaphore
 //semaphore "empty" and "full" is counting semaphore
-=======
-void printBuffer(int *buffer) {
-	for(;buffer<buffer+BUFSIZE; buffer++) fprintf(stderr,"%d ",*buffer);
-	fprintf(stderr,"\n");
-	fflush(stderr);
-}
-
->>>>>>> 1e7d9a246cba2627e2e662b7fc6bf118bb827b5a
 int producer(sh_data_t *sh_data_p ,sem_t *empty, sem_t *mutex, sem_t *full){
 	printf("producer process is begin \n");
 	int num = 0; // idx;
@@ -46,12 +37,6 @@ int producer(sh_data_t *sh_data_p ,sem_t *empty, sem_t *mutex, sem_t *full){
 		sem_getvalue(&empty, &emp_val);	//get empty semaphore value
 		printf("empty value is %d \n", emp_val);
 		sem_wait(mutex);	//check that this process can be run (if another producer is running or consumer is running, then this process will be blocked)
-=======
-		fprintf(stderr,"[ LOG ] (before sema-full) I'm in Producer(PID==%d)\n",(int) getpid());
-		sem_wait(empty);
-		fprintf(stderr,"[ LOG ] (after sema-empty) I'm in Producer(PID==%d)\n",(int) getpid());
-		sem_wait(mutex);
->>>>>>> 1e7d9a246cba2627e2e662b7fc6bf118bb827b5a
 		
 		//producing an item is performed
 		num = num + 1;
