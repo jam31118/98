@@ -50,6 +50,7 @@ int consumer(sh_data_t *sh_data_p, sem_t *empty, sem_t *mutex , sem_t *full) {
 		*sh_data_p->read_ptr = 0;
 		sh_data_p->read_ptr = (sh_data_p->buffer+((sh_data_p->read_idx++)%20));
 		sh_data_p->consumed++;	
+
 		sem_post(mutex);
 		sem_post(empty);
 	}while(sh_data_p->consumed <= (sh_data_p->m)*50);
@@ -137,8 +138,8 @@ int main(int argc, char *argv[]) {
 					fprintf(stderr,"[ERROR] Failed to fork()\n");
 					return 1;
 				} else if (consumer_pids[i] == 0) {
-					fprintf(stderr,"[ LOG ] I'm in Comsumers PID == %d, SUM == %d\n",
-							(int) getpid(),sh_data_p->SUM);
+			//		fprintf(stderr,"[ LOG ] I'm in Comsumers PID == %d, SUM == %d\n",
+			//				(int) getpid(),sh_data_p->SUM);
 					consumer(sh_data_p,empty_id,mutex_id,full_id);
 					return 0;
 				}
@@ -153,8 +154,8 @@ int main(int argc, char *argv[]) {
 				fprintf(stderr,"[ERROR] Failed to fork()\n");
 				return 1;
 			} else if (producer_pids[i] == 0) {
-				fprintf(stderr,"[ LOG ] I'm in Producers PID == %d, SUM == %d\n",
-						(int) getpid(), sh_data_p->SUM);
+		//		fprintf(stderr,"[ LOG ] I'm in Producers PID == %d, SUM == %d\n",
+		//				(int) getpid(), sh_data_p->SUM);
 				producer(sh_data_p,empty_id,mutex_id,full_id);
 				return 0;
 			}
