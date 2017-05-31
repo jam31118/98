@@ -98,6 +98,7 @@ int main(int argc, char *argv[]) {
 	int shm_fd;
 	
 	/* Shared memory declaration */
+	
 	shm_fd = shm_open(shmName, O_CREAT | O_RDWR, 0666);
 	if (shm_fd == -1) {printf("Shared failed in CREATing\n"); return 1;}
 	if (ftruncate(shm_fd,SIZE)) printf("[ERROR] Failed to ftruncate()\n");
