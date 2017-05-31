@@ -17,10 +17,13 @@
 #include <string.h>
 
 #define BUFSIZE 20
+#define MAXNUM 50
+
 #define SHMNAME "/SHM"
 #define FULLNAME "/FULL"
 #define MUTEXNAME "/MUTEX"
 #define EMPTYNAME "/EMPTY"
+
 
 typedef struct sh_data {
 	int buffer[BUFSIZE];
@@ -31,16 +34,20 @@ typedef struct sh_data {
 
 void printBuffer(int *buffer) {
 	int *buf_p;
-	fprintf(stderr,"[[");
-	fflush(stderr);
+	fprintf(stdout,"[PID=%d] [[",(int) getpid());
 	for(buf_p = buffer; buf_p<buffer+BUFSIZE; buf_p++) {
-		fprintf(stderr,"%3d",*buf_p);
-		fflush(stderr);
+		fprintf(stdout,"%3d",*buf_p);
 	}
-	fprintf(stderr,"]]");
-	fflush(stderr);
-	fprintf(stderr,"\n");
-	fflush(stderr);
+	fprintf(stdout,"]]");
+	fprintf(stdout,"\n");
+}
+
+int isEmpty(int *buffer, size_t len) {
+    int *buf_p, *buf_p_max = buffer + len;
+    for(buf_p=buffer; buf_p<buf_p_max; buf_p++){
+        if (*buf_p) { return 0; }
+    }
+    return 1;
 }
 
 void printSEM(sem_t *mutex, sem_t *full, sem_t *empty) {
@@ -54,7 +61,7 @@ void printSEM(sem_t *mutex, sem_t *full, sem_t *empty) {
 	if (sem_getvalue(empty,&empty_val)) {
 		fprintf(stderr,"[ERROR] [PID==%d] Failed to get sem value (errno == %s)\n",
 				(int)getpid(),strerror(errno));	}
-	fprintf(stderr,"[PID=%d] mutex=%d, full=%d, empty=%d\n",
+	fprintf(stdout,"[PID=%d] mutex=%d, full=%d, empty=%d\n",
 			(int) getpid(),mutex_val, full_val, empty_val);
 }
 
@@ -63,10 +70,10 @@ int producer(){
 	/* Open Shared memory */
 	const size_t SIZE = sizeof(sh_data_t);
 	int shm_fd = shm_open(SHMNAME, O_RDWR, 0666);
-	if (shm_fd == -1) {printf("Shared failed in CREATing\n"); return 1;}
+	if (shm_fd == -1) {fprintf(stderr,"[PID=%d]Shared failed in CREATing\n",(int)getpid()); return 1;}
 	sh_data_t *sh_data_p = (sh_data_t *) 
 		mmap(NULL, SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
-	if(sh_data_p == MAP_FAILED) {printf("Map Failed\n");return 1;}
+	if(sh_data_p == MAP_FAILED) {fprintf(stderr,"[PID=%d] Map Failed\n",(int)getpid());return 1;}
 
 	/* Open Semaphores */
 	sem_t *empty, *mutex, *full;
@@ -82,7 +89,7 @@ int producer(){
 	//idx =0;
 	num = 1;
 //	int sval_tmp;
-	
+	int in_idx = 0;
 	/* Starting Iteration for Data Production */
 	do{
 		//fprintf(stderr,"[ LOG ] (before sema-full) I'm in Producer(PID==%d)\n",(int) getpid());
@@ -94,7 +101,9 @@ int producer(){
 			fflush(stderr);
 		}*/
 
-		sem_wait(empty);
+		if (sem_wait(empty)) {
+			fprintf(stderr,"[PID=%d] Failed to sem_wait(empty)\n",(int)getpid()); 
+			return 1;}
 		//fprintf(stderr,"[ LOG ] (after sema-empty) I'm in Producer(PID==%d)\n",(int) getpid());
 		//fflush(stderr);
 		/*
@@ -105,8 +114,11 @@ int producer(){
 			fflush(stderr);
 		}*/
 
-		sem_wait(mutex);
-		fprintf(stderr,"\n=======PRODUCER-MUTEX-START======[SUM=%d][PID=%d]\n",
+		if (sem_wait(mutex)) {
+			fprintf(stderr,"[PID=%d] Failed to sem_wait(mutex)\n",(int)getpid());
+			return 1; }
+
+		fprintf(stdout,"\n=======PRODUCER-MUTEX-START======[SUM=%d][PID=%d]\n",
 				sh_data_p->SUM, (int) getpid());
 //		fprintf(stderr,"[ LOG ] (after mutex) I'm in Producer(PID==%d), num == %d, buffer == %p\n",(int) getpid(),num,sh_data_p->buffer);
 
@@ -121,13 +133,25 @@ int producer(){
 				sh_data_p->write_idx, ((sh_data_p->write_idx)%20));
 		printBuffer(sh_data_p->buffer);
 		*/
-		sh_data_p->SUM += 1;
-		num+=1;
+		//sh_data_p->SUM += 1;
+		in_idx = sh_data_p->write_idx % BUFSIZE;
+
+		sh_data_p->buffer[in_idx] = num;
+
+		fprintf(stdout,"[PID=%d] sh_data_p->write_idx == %d\n",(int)getpid(),sh_data_p->write_idx);
+		fprintf(stdout,"[PID=%d] in_idx == %d\n",(int)getpid(),in_idx);
+		printBuffer(sh_data_p->buffer);
+
+		sh_data_p->write_idx++;
+		num++;
 		
-		fprintf(stderr,"=======PRODUCER-MUTEX-ENDS======[SUM=%d][PID=%d]\n",
+		printSEM(mutex,full,empty);
+		fprintf(stdout,"=======PRODUCER-MUTEX-ENDS=======[SUM=%d][PID=%d]\n",
 				sh_data_p->SUM, (int) getpid());
 	//	sem_post(mutex);
-		if (sem_post(mutex)) {fprintf(stderr,"[PID==%d] Failed to Producer sem_post(mutex)\n",(int) getpid());}
+		if (sem_post(mutex)) {
+			fprintf(stderr,"[PID==%d] Failed to Producer sem_post(mutex)\n",(int) getpid());
+			return 1; }
 		/*
 		if (sem_getvalue(mutex,&sval_tmp)) {
 			fprintf(stderr,"[ERROR] [PID==%d] Failed to get sem value of mutex (errno == %s)\n",
@@ -136,23 +160,32 @@ int producer(){
 			fprintf(stderr,"[ LOG ] [PID==%d] [After POST] Value of mutex == %d\n",(int) getpid(),sval_tmp);
 			fflush(stderr);
 		}*/
-		if (sem_post(full)) {fprintf(stderr,"[PID==%d] Failed to Producer sem_post(full)\n",(int) getpid());}
+		if (sem_post(full)) {
+			fprintf(stderr,"[PID==%d] Failed to Producer sem_post(full)\n",(int) getpid());
+			return 1; }
 		
+		/* Break Condition */
+		if (num > MAXNUM) break;
 		//fprintf(stderr,"[ LOG ] BUFFER in Producer(PID==%d) \n",(int) getpid());
 		//fprintf(stderr,"\n\n\n");
 		//fflush(stderr);
-	} while (num <= 10);
+	} while (1);
 
 	/* Unlink Shared memory */
-	shm_unlink(SHMNAME);
+//	shm_unlink(SHMNAME); 
+//	One should not unlink for sake of other processes
+//	Since shm_unlink() destroies the shared memory object permanently!
+	
+	/* Close Shared memory */
+	close(shm_fd);
 
-	/* Close and Unlink Semaphores */
+	/* Close Semaphores */
 	sem_close(empty);
-	sem_unlink(EMPTYNAME);
+//	sem_unlink(EMPTYNAME);
 	sem_close(mutex);
-	sem_unlink(MUTEXNAME);
+//	sem_unlink(MUTEXNAME);
 	sem_close(full);
-	sem_unlink(FULLNAME);
+//	sem_unlink(FULLNAME);
 
 	return 0;
 }
@@ -161,10 +194,10 @@ int producer(){
 int consumer() {
 	/* Open Shared memory */
 	const size_t SIZE = sizeof(sh_data_t);
-	int shm_fd = shm_open(SHMNAME, O_RDONLY, 0666);
-	if (shm_fd == -1) {printf("Shared failed in CREATing\n"); return 1;}
+	int shm_fd = shm_open(SHMNAME, O_RDWR,0666);
+	if (shm_fd == -1) {fprintf(stderr,"[PID=%d]Shared failed in CREATing\n",(int)getpid()); return 1;}
 	sh_data_t *sh_data_p = (sh_data_t *) 
-		mmap(NULL, SIZE, PROT_READ, MAP_SHARED, shm_fd, 0);
+		mmap(NULL, SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
 	if(sh_data_p == MAP_FAILED) {printf("Map Failed\n");return 1;}
 
 	/* Open Semaphores */
@@ -174,9 +207,10 @@ int consumer() {
 	full = sem_open(FULLNAME,0);
 
 	/* Debugging */
-	printSEM(mutex,full,empty);
+//	printSEM(mutex,full,empty);
 
 	/* Data Initialization */
+	int out_idx = 0;
 	//int idx; idx = 0;
 //	int sval_tmp;
 	
@@ -190,7 +224,7 @@ int consumer() {
 		} else {
 			fprintf(stderr,"[ LOG ] [PID==%d] Value of Consumer full == %d\n",(int) getpid(),sval_tmp);
 		}*/
-		sem_wait(full);
+		if (sem_wait(full)) {fprintf(stderr,"[PID=%d] Failed to sem_wait(full)\n",(int)getpid());}
 		//fprintf(stderr,"[ LOG ] (after sema-full) I'm in Consumer(PID==%d)\n",(int) getpid());
 		/*
 		if (sem_getvalue(mutex,&sval_tmp)) {
@@ -200,9 +234,9 @@ int consumer() {
 			fprintf(stderr,"[ LOG ] [PID==%d] Value of Consumer mutex == %d\n",(int) getpid(),sval_tmp);
 			fflush(stderr);
 		}*/
-		sem_wait(mutex);
+		if (sem_wait(mutex)) {fprintf(stderr,"[PID=%d] Failed to sem_wait(mutex)\n",(int)getpid());}
 		
-		fprintf(stderr,"\n+++++CONSUMER-MUTEX-START+++++++[SUM=%d][PID=%d]\n",
+		fprintf(stdout,"\n+++++CONSUMER-MUTEX-START+++++++[SUM=%d][PID=%d]\n",
 				sh_data_p->SUM, (int) getpid());
 		/*
 		fprintf(stderr,"[ LOG ] (after mutex) I'm in Consumer(PID==%d)\n",(int) getpid());
@@ -212,8 +246,25 @@ int consumer() {
 			
 		printBuffer(sh_data_p->buffer);
 		*/
+		printSEM(mutex,full,empty);
+        
+        /* Determine index to read from buffer */
+		out_idx = sh_data_p->read_idx % BUFSIZE;
+        
+        /* Read and use the data */
+        sh_data_p->SUM += sh_data_p->buffer[out_idx];
 
-		fprintf(stderr,"+++++CONSUMER-MUTEX-ENDS++++++++[SUM=%d][PID=%d]\n\n",
+        /* Clearing the buffer section that has already been read */
+		sh_data_p->buffer[out_idx] = 0;
+
+		fprintf(stdout,"[PID=%d] read_idx = %d\n",(int)getpid(),sh_data_p->read_idx);
+		fprintf(stdout,"[PID=%d] out_idx == %d\n",(int)getpid(),out_idx);
+		printBuffer(sh_data_p->buffer);
+        
+        /* Increment the reading index to next element of buffer */
+		sh_data_p->read_idx += 1; // 170529 Problem! (170529 solved)
+
+		fprintf(stdout,"+++++CONSUMER-MUTEX-ENDS++++++++[SUM=%d][PID=%d]\n\n",
 				sh_data_p->SUM, (int) getpid());
 	//	sem_post(mutex);
 		if (sem_post(mutex)) {fprintf(stderr,"[PID==%d] Failed to Consumer sem_post(mutex)\n",(int) getpid());}
@@ -226,22 +277,27 @@ int consumer() {
 			fflush(stderr);
 		}*/
 		if (sem_post(empty)) {fprintf(stderr,"[PID==%d] Failed to Consumer sem_post(empty)\n",(int) getpid());}
-
+		
+		/* Break Condition */
+		if ((sh_data_p->write_idx >= MAXNUM) && isEmpty(sh_data_p->buffer,BUFSIZE)) break; // 170529-1517 Problem .. should read all (170601 solved!) 
 //		fprintf(stderr,"\n\n\n");
 //		fprintf(stderr,"[ LOG ] BUFFER in Producer(PID==%d) ",(int) getpid());
-	} while (sh_data_p->SUM >= 10);
+	} while (1);
 	//} while (sh_data_p->write_idx < 50);
 	
 	/* Unlink Shared memory */
-	shm_unlink(SHMNAME);
+//	shm_unlink(SHMNAME);
 
-	/* Close and Unlink Semaphores */
+	/* Close Shared memory */
+	close(shm_fd);
+
+	/* Close Semaphores */
 	sem_close(empty);
-	sem_unlink(EMPTYNAME);
+//	sem_unlink(EMPTYNAME);
 	sem_close(mutex);
-	sem_unlink(MUTEXNAME);
+//	sem_unlink(MUTEXNAME);
 	sem_close(full);
-	sem_unlink(FULLNAME);
+//	sem_unlink(FULLNAME);
 
 	return 0;	
 }
@@ -266,7 +322,7 @@ int main(int argc, char *argv[]) {
 	
 	/* Shared memory declaration */
 	shm_fd = shm_open(shmName, O_CREAT | O_RDWR, 0666);
-	if (shm_fd == -1) {printf("Shared failed in CREATing\n"); return 1;}
+	if (shm_fd == -1) {fprintf(stderr,"[PID=%d]Shared failed in CREATing\n",(int)getpid()); return 1;}
 	if (ftruncate(shm_fd,SIZE)) printf("[ERROR] Failed to ftruncate()\n");
 	sh_data_p = (sh_data_t *) mmap(0,SIZE,PROT_READ|PROT_WRITE,MAP_SHARED,shm_fd,0);
 	if(sh_data_p == MAP_FAILED) {printf("Map Failed\n");return 1;}
