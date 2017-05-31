@@ -46,3 +46,8 @@
   - one consumer is right before mutex, other is before full
   - all consumers 
 
+- should read description!!
+
+final checks
+- file names of src should be problemN.c ..
+
