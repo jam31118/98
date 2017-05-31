@@ -29,11 +29,10 @@ int producer(sh_data_t *sh_data_p ,sem_t *empty, sem_t *mutex, sem_t *full){
 	num = 1;
 	do{
 		sem_wait(empty);
+			
 		sem_wait(mutex);
-		
 		*sh_data_p->write_ptr = num++;
 		sh_data_p->write_ptr = (sh_data_p->buffer+((sh_data_p->write_idx++)%20));
-		
 		sem_post(mutex);
 		sem_post(full);
 		
@@ -52,7 +51,7 @@ int consumer(sh_data_t *sh_data_p, sem_t *empty, sem_t *mutex , sem_t *full) {
 		sh_data_p->read_ptr = (sh_data_p->buffer+((sh_data_p->read_idx++)%20));
 		sh_data_p->consumed++;	
 		sem_post(mutex);
-		sem_post(full);
+		sem_post(empty);
 	}while(sh_data_p->consumed <= (sh_data_p->m)*50);
 
 	return 0;	
@@ -83,6 +82,7 @@ int main(int argc, char *argv[]) {
 	int shm_fd;
 	
 	/* Shared memory declaration */
+	shm_unlink(shmName);
 	shm_fd = shm_open(shmName, O_CREAT | O_RDWR, 0666);
 	if (shm_fd == -1) {printf("Shared failed in CREATing\n"); return 1;}
 	if (ftruncate(shm_fd,SIZE)) printf("[ERROR] Failed to ftruncate()\n");
@@ -115,6 +115,12 @@ int main(int argc, char *argv[]) {
 	int status=0;
 	if (ch1) {
 		/* Parent Process */
+		//while(procAliveNum>0)
+		//{
+		//	wait(&status);
+		//	--procAliveNum;
+		//}
+//		printf("%d\n",sh_data_p->SUM);
 		ch2 = fork();
 		if (ch2) {
 			/* Parent Process in deeper but same */
