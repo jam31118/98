@@ -26,3 +26,23 @@
 - Does multiple shm_open with each read/write authorities a problem?
 - What's the difference between 1m1n script and "mmnn 1 1"? should be same!
 
+- put the contents of sh_data_p per problems!
+
+- idea.. if one of the consumers reach to the ending condition, 
+  then it should help other consumers to terminate by letting them
+  enter to .. // but the break should be done after posting sem. 
+  - the global flag should be determined in the critical in consumers, 
+    i.e. before the mutex.
+  - so.. first,, the global end flag is set
+  - and, the first consumer post_sem 
+  - and, every consumer should check the end flag right after the mutex
+    i.e. the very first part of the critical section!
+
+
+- Does producer end??
+
+- two possible case
+ - assuming producer ends separatly..
+  - one consumer is right before mutex, other is before full
+  - all consumers 
+
