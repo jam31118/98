@@ -1,2 +1,11 @@
-Howabout forking recursively? How do those children processes behaves?
+- How about forking recursively? How do those children processes behave?
+- let's 'shm_unlink'
+- check all the error return values!
+- utilize both stdout and stderr
+
+- shared memory should be in #define so that it can be accessed by any code segments
+- the shm should be opened in each processes!
+- all shm and sem should be opened and also closed in each processes!
+
+- why do we ftruncate()?
 
