@@ -10,32 +10,30 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 
-int ch1task(int *sh_data_p, int N, int sleeptime) {
+#include <sys/stat.h>
+#include <semaphore.h>
+/* Child Process 01 */
+int ch1task(int *X, int N, int sleeptime) {
 	usleep(sleeptime);
 	int i;
-//	printf("[PID == %d] I'm in ch1task \n",
-//			(int) getpid());
-	for(i=0;i<N;i++) (*sh_data_p)++; // = *sh_data_p +1;
+	for(i=0;i<N;i++) (*X)++; // = *X +1;
 	return 0;
 }
-
-int ch2task(int *sh_data_p, int N, int sleeptime) {
+/* Child Proce 02 */
+int ch2task(int *X, int N, int sleeptime) {
 	usleep(sleeptime);
 	int i;
-//	printf("[PID == %d] I'm in ch2task \n",
-//			(int) getpid());
-	for(i=0; i<N; i++) (*sh_data_p)--; // = *sh_data_p -1;
+	for(i=0; i<N; i++) (*X)--; // = *X -1;
 	return 0;
 }
 
 int main(int argc, char *argv[]) {
 	/* Parsing */
-	int sleeptime1;
-    int sleeptime2;
-    if (argc <= 1) {sleeptime1 = 0;sleeptime2 = 0;}
+    int sleeptime1, sleeptime2;
+	if (argc <= 1) {sleeptime1 = 0; sleeptime2 = 0;}
     else{
     sleeptime1 = atoi(argv[1]);
-	sleeptime2 = atoi(argv[2]);
+    sleeptime2 = atoi(argv[2]);
     }
 	/* Global configuration */
 	int N = 10;
@@ -44,17 +42,25 @@ int main(int argc, char *argv[]) {
 	/* Shared memory information */
 	const char *shmName = "/SHM";
 	size_t SIZE = sizeof(int);
-	int *sh_data_p;
+	int *X;
 	int shm_fd;
-
+	
+	/* Shared memory declaration */
 	shm_fd = shm_open(shmName, O_CREAT | O_RDWR, 0666);
 	if (shm_fd == -1) {printf("Shared failed in CREATing\n"); return 1;}
 	if (ftruncate(shm_fd,SIZE)) printf("[ERROR] Failed to ftruncate()\n");
-	sh_data_p = (int *) mmap(0,SIZE,PROT_READ|PROT_WRITE,MAP_SHARED,shm_fd,0);
-	if(sh_data_p == MAP_FAILED) {printf("Map Failed\n");return 1;}
+	X = (int *) mmap(0,SIZE,PROT_READ|PROT_WRITE,MAP_SHARED,shm_fd,0);
+	if(X == MAP_FAILED) {printf("Map Failed\n");return 1;}
 
 	/* Shared Data initialization */
-	*sh_data_p = 0;
+	*X = 0;
+
+		
+	/* Semaphore information */
+	const char *semName = "/SEM";
+	
+	/* Semaphore ID generation */
+	sem_t *sem_id = sem_open(semName, O_CREAT, S_IRUSR | S_IWUSR, 1);
 
 	/* Creating Child Processes */
 	pid_t ch1, ch2;
@@ -62,28 +68,23 @@ int main(int argc, char *argv[]) {
 	ch1 = fork();
 	if (ch1) {
 		/* Parent Process */
-	//	printf("I'm PARENT (PID == %d)\n",
-	//			(int) getpid());
-		//wait(NULL);
 		ch2 = fork();
 		if (ch2) {
 			/* Parent Process in deeper but same */
-		//	printf("[PID == %d] I'm PARENT, in inner shell \n",
-		//			(int) getpid());
 			while (n>0) {wait(NULL); --n;}
-			printf("%d\n",*sh_data_p);
+			printf("%d\n",*X);
 		} else {
 			/* Child Process 02 */
-		//	printf("[PID == %d] I'm CHILD \n",
-		//			(int) getpid());
-			ch2task(sh_data_p,N,sleeptime1);
+			sem_wait(sem_id);
+			ch2task(X,N,sleeptime1);
+			sem_post(sem_id);
 		}
 
 	} else {
 		/* Child Process 01 */
-	//	printf("[PID == %d] I'm CHILD\n",
-	//			(int) getpid());
-		ch1task(sh_data_p,N,sleeptime2);
+		sem_wait(sem_id);
+		ch1task(X,N,sleeptime2);
+		sem_post(sem_id);
 	}
 	return 0;
 }
