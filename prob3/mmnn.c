@@ -262,19 +262,18 @@ int consumer() {
 }
 
 int main(int argc, char *argv[]) {
-	/* Disabling buffering in standard output and error 
-	* so the printf and fprintf yield its content immediately */
-	setbuf(stderr,NULL);
-	setbuf(stdout,NULL);
-
-	/* Parsing */
+	/* Parsing (m for producer, n for consumer)*/
 	if (argc <= 1) {printf("Enter m, n values\n");return 1;}
 	int m = atoi(argv[1]);
 	int n = atoi(argv[2]);
-	printf("We will be make %d producer(s) and %d consumer(s) \n \n \n", m, n);
-
-	/* Declaring pid container for multiple processes */ 
+    
+    /* Declaring pid container for multiple processes */ 
 	pid_t producer_pids[m], consumer_pids[n];
+
+    /* Disabling buffering in standard output and error 
+     * so the printf and fprintf yield its content immediately */
+	setbuf(stderr,NULL);
+	setbuf(stdout,NULL);
 
 	/* Shared memory information */
 	const char *shmName = "/SHM";
@@ -284,7 +283,7 @@ int main(int argc, char *argv[]) {
 	
 	/* Shared memory declaration */
 	shm_fd = shm_open(shmName, O_CREAT | O_RDWR, 0666);
-	if (shm_fd == -1) {fprintf(stderr,"[PID=%d] Shared failed in CREATing (errno == %s\n)",(int)getpid(),strerror(errno)); return 1;}
+	if (shm_fd == -1) {fprintf(stderr,"[PID=%d] Shared failed in CREATing (errno == %s\n",(int)getpid(),strerror(errno)); return 1;}
 	if (ftruncate(shm_fd,SIZE)) printf("[ERROR] Failed to ftruncate()\n");
 	sh_data_p = (sh_data_t *) mmap(0,SIZE,PROT_READ|PROT_WRITE,MAP_SHARED,shm_fd,0);
 	if(sh_data_p == MAP_FAILED) {printf("Map Failed\n");return 1;}
@@ -306,7 +305,7 @@ int main(int argc, char *argv[]) {
 	if (empty_id == SEM_FAILED) {fprintf(stderr,"empty_id is failed\n");}
 	sem_t *mutex_id = sem_open(MUTEXNAME, O_CREAT, S_IRUSR | S_IWUSR, 1);
     
-	/* Semaphore Initialization */
+    /* Semaphore Initialization */
 	sem_init(full_id,1,0);
 	sem_init(empty_id,1,BUFSIZE);
 	sem_init(mutex_id,1,1);
