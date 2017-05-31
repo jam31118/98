@@ -15,10 +15,5 @@ do
 		then
 			echo $RESULT1
 		fi
-		#RESULT2=$($PROGRAM $i 0)
-		#if [ $RESULT2 != 0 ]
-		#then
-		#	echo $RESULT2
-		#fi
 	done
 done

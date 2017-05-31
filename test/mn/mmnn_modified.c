@@ -4,7 +4,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <wait.h>
-//#include <sys/wait.h>
 #include <stdlib.h>
 
 #include <sys/shm.h>
@@ -30,6 +29,7 @@ typedef struct sh_data {
 	int SUM;
 	int *write_ptr, *read_ptr;
 	int write_idx, read_idx;
+	int write_count;	//to know how many produce the item. this will be used to make brake condition in consumer process.
 } sh_data_t;
 
 void printBuffer(int *buffer) {
@@ -62,11 +62,11 @@ void printSEM(sem_t *mutex, sem_t *full, sem_t *empty) {
 			(int) getpid(),mutex_val, full_val, empty_val);
 }
 
-int producer(){
+int producer() {
 	/* Open Shared memory */
 	const size_t SIZE = sizeof(sh_data_t);
 	int shm_fd = shm_open(SHMNAME, O_RDWR, 0666);
-	if (shm_fd == -1) {fprintf(stderr,"[PID=%d]Shared failed in CREATing\n",(int)getpid()); return 1;}
+	if (shm_fd == -1) {fprintf(stderr,"[PID=%d] Shared failed in CREATing (errno == %s\n",(int)getpid(),strerror(errno)); return 1;}
 	sh_data_t *sh_data_p = (sh_data_t *) 
 		mmap(NULL, SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
 	if(sh_data_p == MAP_FAILED) {fprintf(stderr,"[PID=%d] Map Failed\n",(int)getpid());return 1;}
@@ -83,7 +83,7 @@ int producer(){
 
 	/* Starting Iteration for Data Production */
 	do{
-
+//		printf("producing restart \n");
         /* Wait for Consumers to consume the data */
 		if (sem_wait(empty)) {
 			fprintf(stderr,"[PID=%d] Failed to sem_wait(empty)\n",(int)getpid()); 
@@ -128,8 +128,10 @@ int producer(){
 			fprintf(stderr,"[PID==%d] Failed to Producer sem_post(full)\n",(int) getpid());
 			return 1; }
 		
+//		printf("producing is end \n");
 		/* Break Condition */
 		if (num >= MAXNUM) break;
+//		printf("producing is real end \n");
 
 	} while (1);
 
@@ -151,11 +153,11 @@ int producer(){
 int consumer() {
 	/* Open Shared memory */
 	const size_t SIZE = sizeof(sh_data_t);
-	int shm_fd = shm_open(SHMNAME, O_RDWR,0666);
-	if (shm_fd == -1) {fprintf(stderr,"[PID=%d]Shared failed in CREATing\n",(int)getpid()); return 1;}
+	int shm_fd = shm_open(SHMNAME, O_RDWR, 0666);
+	if (shm_fd == -1) {fprintf(stderr,"[PID=%d] Shared failed in CREATing (errno == %s\n",(int)getpid(),strerror(errno)); return 1;}
 	sh_data_t *sh_data_p = (sh_data_t *) 
 		mmap(NULL, SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
-	if(sh_data_p == MAP_FAILED) {printf("Map Failed\n");return 1;}
+	if(sh_data_p == MAP_FAILED) {fprintf(stderr,"[PID=%d] Map Failed\n",(int)getpid());return 1;}
 
 	/* Open Semaphores */
 	sem_t *empty, *mutex, *full;
@@ -168,6 +170,7 @@ int consumer() {
 	
 	/* Start Interation for Data Consumption */
 	do{
+//		printf("Consuming restart \n");
         /* Wait for Procuders to produce new data */
 		if (sem_wait(full)) {
             fprintf(stderr,"[PID=%d] Failed to sem_wait(full)\n",(int)getpid());
@@ -215,7 +218,7 @@ int consumer() {
             return 1; }
 		
 		/* Break Condition */
-		if ((sh_data_p->write_idx >= MAXNUM) && isEmpty(sh_data_p->buffer,BUFSIZE)) break; // 170529-1517 Problem .. should read all (170601 solved!) 
+		if ((sh_data_p->read_idx >= sh_data_p->write_count) && isEmpty(sh_data_p->buffer,BUFSIZE)) break; // 170529-1517 Problem .. should read all (170601 solved!) 
 
 	} while (1);
 	
@@ -235,19 +238,20 @@ int consumer() {
 }
 
 int main(int argc, char *argv[]) {
-    /* Disabling buffering in standard output and error 
-     * so the printf and fprintf yield its content immediately */
+
+	/* Disabling buffering in standard output and error 
+	* so the printf and fprintf yield its content immediately */
 	setbuf(stderr,NULL);
 	setbuf(stdout,NULL);
-	
+
 	/* Parsing */
-	if (argc <= 1)
-	{
-		printf("Enter m, n values \n");
-		return 1;
-	}
+	if (argc <= 1) {printf("Enter m, n values\n");return 1;}
 	int m = atoi(argv[1]);
 	int n = atoi(argv[2]);
+	printf("We will be make %d producer(s) and %d consumer(s) \n \n \n", m, n);
+
+	/* Declaring pid container for multiple processes */ 
+	pid_t producer_pids[m], consumer_pids[n];
 
 	/* Shared memory information */
 	const char *shmName = "/SHM";
@@ -257,7 +261,7 @@ int main(int argc, char *argv[]) {
 	
 	/* Shared memory declaration */
 	shm_fd = shm_open(shmName, O_CREAT | O_RDWR, 0666);
-	if (shm_fd == -1) {fprintf(stderr,"[PID=%d]Shared failed in CREATing\n",(int)getpid()); return 1;}
+	if (shm_fd == -1) {fprintf(stderr,"[PID=%d] Shared failed in CREATing (errno == %s\n)",(int)getpid(),strerror(errno)); return 1;}
 	if (ftruncate(shm_fd,SIZE)) printf("[ERROR] Failed to ftruncate()\n");
 	sh_data_p = (sh_data_t *) mmap(0,SIZE,PROT_READ|PROT_WRITE,MAP_SHARED,shm_fd,0);
 	if(sh_data_p == MAP_FAILED) {printf("Map Failed\n");return 1;}
@@ -269,6 +273,7 @@ int main(int argc, char *argv[]) {
 	sh_data_p->read_ptr = sh_data_p->buffer;
 	sh_data_p->write_idx = 0;
 	sh_data_p->read_idx = 0;
+	sh_data_p->write_count = MAXNUM * m;
 		
 	/* Semaphore ID generation */
 	sem_t *full_id = sem_open(FULLNAME, O_CREAT, S_IRUSR | S_IWUSR, 0);
@@ -284,41 +289,62 @@ int main(int argc, char *argv[]) {
 	/* Debug info: checking initialization */
 	printSEM(mutex_id,full_id,empty_id);
 
+	
 	/* Creating Child Processes */
-	pid_t ch1, ch2;
-	ch1 = fork();
+	pid_t ch_p1, ch_p2, ch_c;	//producer1, producer2, consumer
+	ch_p1 = fork();
 	int status = -1;
 	pid_t tmp;
-	if (ch1) {
+	if (ch_p1) 
+	{
 		/* Parent Process */
-		ch2 = fork();
-		if (ch2) {
-            /* Wait for child processes to terminate and get their exit statuses */
-			tmp = wait(&status);
-			fprintf(stderr,"[PID=%d] Producers(PID==%d) exited with status %d\n",(int) getpid(), tmp, status);
-			tmp = wait(&status);
-			fprintf(stderr,"[PID=%d] Consumers(PID==%d) exited with status %d\n",(int) getpid(), tmp, status);	
-
-			/* Unlink Shared memory */
-			shm_unlink(SHMNAME);
+		ch_p2 = fork();
+		if (ch_p2) 
+		{
+			ch_c = fork();
+			if (ch_c)
+			{
+				/* Wait for child processes to terminate and get their exit statuses */
+				tmp = wait(&status);
+				fprintf(stderr,"[PID=%d] Producers(PID==%d) exited with status %d\n",(int) getpid(), tmp, status);
+				tmp = wait(&status);
+				fprintf(stderr,"[PID=%d] Producers(PID==%d) exited with status %d\n",(int) getpid(), tmp, status);
+				tmp = wait(&status);
+				fprintf(stderr,"[PID=%d] Consumers(PID==%d) exited with status %d\n",(int) getpid(), tmp, status);	
+            	
+				/* Unlink Shared memory */
+				shm_unlink(SHMNAME);
 		
-			/* Close and Unlink Semaphores */
-			sem_close(empty_id);
-			sem_unlink(EMPTYNAME);
-			sem_close(mutex_id);
-			sem_unlink(MUTEXNAME);
-			sem_close(full_id);
-			sem_unlink(FULLNAME);
-            
-            /* Printing final summation result */
-			printf("%d\n",sh_data_p->SUM);
+				/* Close and Unlink Semaphores */
+				sem_close(empty_id);
+				sem_unlink(EMPTYNAME);
+				sem_close(mutex_id);
+				sem_unlink(MUTEXNAME);
+				sem_close(full_id);
+				sem_unlink(FULLNAME);
+            	
+            	/* Printing final summation result */
+				printf("%d\n",sh_data_p->SUM);
 
-		} else {
-            /* Child Process: Consumer */
-			consumer();
+			} 
+
+			else 
+			{
+				/* Child Process: Consumer */
+				consumer();
+			}
 		}
-	} else {
-        /* Child Process: Producer */
+
+		else
+		{
+			/* Child Process: Producer2 */
+			producer();
+		}
+	} 
+	
+	else 
+	{
+        /* Child Process: Producer1 */
 		producer();
 	}
 	return 0;

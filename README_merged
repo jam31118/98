@@ -1,112 +1,26 @@
+<<<DESCRIPTION>>>
+VERY IMPORTANT(!!!): We are very sorry to write README file in English. Github doesn't have Korean language support.
+
 <Problem 1>
-this is the source code of problem 1.
-------------------------------------
-#define _GNU_SOURCE
+To execute the same file for 10000 times, use .sh file with the following code.
+Problem1 code receives 2 arguments (to use argc & argv[]). Each argument means sleep time. 
+First argument is ch1(increment process) sleep time, and second argument is ch2(decrement process) sleep time.
+In this shell-file code case, delay time of ch1_process is always 0ms, and delay time of ch2_process is 0, 10, 20, ..., 100ms.
 
-#include <stdio.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <wait.h>
-#include <stdlib.h>
+The following explanation is the process of this shell-file. -------(***)
+(Precondition: ch1 sleep time is always 0)
+(1). Set the ch2 delay time as 0ms, and execute problem1.exe with these arguments for 1000 times.
+(2). After (1), reset the ch2 delay time as 10ms, and doing (1) again.
+...
+(10). After (9), reset the ch2 delay time as 90ms, and doing (1) again.
+if you want to change ch1 sleep time, modify shell-file code.
 
-#include <sys/shm.h>
-#include <sys/mman.h>
-#include <fcntl.h>
-
-//increasing shared data value function for child process 1
-int ch1task(int *sh_data_p, int N, int sleeptime)
-{
-	usleep(sleeptime);
-	int i;
-	for(i=0;i<N;i++) (*sh_data_p)++; // = *sh_data_p +1;
-	return 0;
-}
-
-//decreasing shared data value function for child process 2
-int ch2task(int *sh_data_p, int N, int sleeptime)
-{
-	usleep(sleeptime);
-	int i;
-	for(i=0; i<N; i++) (*sh_data_p)--; // = *sh_data_p -1;
-	return 0;
-}
-
-int main(int argc, char *argv[]) {
-	/* Parsing */
-	if (argc <= 1)
-	{
-		printf("Enter sleeptimes\n");
-		return 1;
-	}
-	int sleeptime1 = atoi(argv[1]);
-	int sleeptime2 = atoi(argv[2]);
-
-	/* Global configuration */
-	int N = 10;
-	int n = 2; // number of processes
-
-	/* Shared memory information */
-	const char *shmName = "/SHM";
-	size_t SIZE = sizeof(int);
-	int *sh_data_p;
-	int shm_fd;
-	
-	/* Shared memory declaration */
-	shm_fd = shm_open(shmName, O_CREAT | O_RDWR, 0666);
-	if (shm_fd == -1) 
-	{
-		printf("Shared failed in CREATing\n"); 
-		return 1;
-	}
-	if (ftruncate(shm_fd,SIZE))
-	{
-		printf("[ERROR] Failed to ftruncate()\n");
-	}
-	sh_data_p = (int *) mmap(0,SIZE,PROT_READ|PROT_WRITE,MAP_SHARED,shm_fd,0);
-	if(sh_data_p == MAP_FAILED) 
-	{
-		printf("Map Failed\n");
-		return 1;
-	}
-
-	/* Shared Data initialization */
-	*sh_data_p = 0;
+(Examples)
+./problem1 10 20 -> execute problem1.exe just 1 time with 'ch1 delay time = 10ms' and 'ch2 delay time = 20'.
+./problem1.sh -> execute problem1.exe like (*).
 
 
-	/* Creating Child Processes */
-	pid_t ch1, ch2;
-
-	ch1 = fork();
-	if (ch1)
-	{
-		/* Parent Process */
-		ch2 = fork();
-		if (ch2)
-		{
-			/* Parent Process in deeper but same */
-			while (n>0) {wait(NULL); --n;}
-			printf("%d\n",*sh_data_p);
-		}
-		else
-		{
-			/* Child Process 02 */
-			ch2task(sh_data_p,N,sleeptime1);
-		}
-
-	}
-	else
-	{
-		/* Child Process 01 */
-		ch1task(sh_data_p,N,sleeptime2);
-	}
-	return 0;
-}
-------------------------------------
-
-
-
-
-To execute the same file for 1000 times, use .sh file with the following code.
+the following code is problem1 shell-file code.
 ------------------------------------
 #!/bin/bash
 PROGRAM=./problem1
@@ -125,20 +39,14 @@ do
 		then
 			echo $RESULT1
 		fi
-		#RESULT2=$($PROGRAM $i 0)
-		#if [ $RESULT2 != 0 ]
-		#then
-		#	echo $RESULT2
-		#fi
 	done
 done
 ------------------------------------
 
 
-
-
+As you know if you read the code, the shared variable's value (= *X) (RMK: X is pointer) will be printed if *X != 0 (i.e. race condition is occurred).
+If not, *X value will not be printed.
 This is the result. Race condition is occurred.
-(if there is no race condition, only "The delay is ~~" sentences are printed.)
 ------------------------------------
 The delay is 0
 10
@@ -167,129 +75,9 @@ The delay is 100
 
 
 
+
 <Problem 2>
-the following source code is the solution of problem 2
---------------------------------------
-#define _GNU_SOURCE
-
-#include <stdio.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <wait.h>
-#include <stdlib.h>
-
-#include <sys/shm.h>
-#include <sys/mman.h>
-#include <fcntl.h>
-
-#include <sys/stat.h>
-#include <semaphore.h>
-
-//increasing shared data value function for child process 1
-int ch1task(int *sh_data_p, int N, int sleeptime)
-{
-	usleep(sleeptime);
-	int i;
-	for(i=0;i<N;i++) (*sh_data_p)++; // = *sh_data_p +1;
-	return 0;
-}
-
-//decreasing shared data value function for child process 2
-int ch2task(int *sh_data_p, int N, int sleeptime) 
-{
-	usleep(sleeptime);
-	int i;
-	for(i=0; i<N; i++) (*sh_data_p)--; // = *sh_data_p -1;
-	return 0;
-}
-
-int main(int argc, char *argv[]) 
-{
-	/* Parsing */
-	if (argc <= 1)
-	{
-		printf("Enter sleeptimes\n");
-		return 1;
-	}
-	int sleeptime1 = atoi(argv[1]);
-	int sleeptime2 = atoi(argv[2]);
-
-	/* Global configuration */
-	int N = 10;
-	int n = 2; // number of processes
-
-	/* Shared memory information */
-	const char *shmName = "/SHM";
-	size_t SIZE = sizeof(int);
-	int *sh_data_p;
-	int shm_fd;
-	
-	/* Shared memory declaration */
-	shm_fd = shm_open(shmName, O_CREAT | O_RDWR, 0666);
-	if (shm_fd == -1)
-	{
-		printf("Shared failed in CREATing\n");
-		return 1;
-	}
-	if (ftruncate(shm_fd,SIZE))
-	{
-		printf("[ERROR] Failed to ftruncate()\n");
-	}
-	sh_data_p = (int *) mmap(0,SIZE,PROT_READ|PROT_WRITE,MAP_SHARED,shm_fd,0);
-	if(sh_data_p == MAP_FAILED)
-	{
-		printf("Map Failed\n");
-		return 1;
-	}
-
-	/* Shared Data initialization */
-	*sh_data_p = 0;
-
-		
-	/* Semaphore information */
-	const char *semName = "/SEM";
-	
-	/* Semaphore ID generation */
-	sem_t *sem_id = sem_open(semName, O_CREAT, S_IRUSR | S_IWUSR, 1);
-
-	/* Creating Child Processes */
-	pid_t ch1, ch2;
-
-	ch1 = fork();
-	if (ch1) 
-	{
-		/* Parent Process */
-		ch2 = fork();
-		if (ch2) 
-		{
-			/* Parent Process in deeper but same */
-			while (n>0) {wait(NULL); --n;}
-			printf("%d\n",*sh_data_p);
-		} 
-		else 
-		{
-			/* Child Process 02 */
-			sem_wait(sem_id);
-			ch2task(sh_data_p,N,sleeptime1);
-			sem_post(sem_id);
-		}
-
-	} 
-	else 
-	{
-		/* Child Process 01 */
-		sem_wait(sem_id);
-		ch1task(sh_data_p,N,sleeptime2);
-		sem_post(sem_id);
-	}
-	return 0;
-}
------------------------------------------
-
-
-
-
-To execute the code above for 1000 times, use .sh file with the following code.
+It is similar to <Problem 1> description.
 -----------------------------------------
 #!/bin/bash
 PROGRAM=./problem2
@@ -313,8 +101,6 @@ done
 -----------------------------------------
 
 
-
-
 This is the result. As you see, there is no race condition.
 -----------------------------------------
 The delay is 0
@@ -333,9 +119,76 @@ The delay is 100
 
 
 
+
 <Problem 3>
-Please refer to these shared variables we added before you read the source code of problem 3.
-(EXCEPT circular buffer[20] and SUM)
------------------------------------------
-int *write_ptr, *read_ptr;
+
+## Shared Variable Description
+
+The declarations of shared variables can be found 
+in the source file "prob3/problem3.c" as the following:
+
+==============================
+typedef struct sh_data {
+	int buffer[BUFSIZE];
+	int SUM;
+	int *write_ptr, *read_ptr;
+	int write_idx, read_idx;
+	int m, n;
+	int consumer_end_flag;
+} sh_data_t;
+==============================
+
+where 
+- 'buffer' is and buffer array with length 20
+- 'SUM' is summation result generated by consumers processes
+- 'write_ptr' is a pointer for an element in buffer into which 
+  the current producer in its critical section put what it'd produced
+- 'read_ptr' is a pointer for an element in buffer from which 
+  the current consumer in its critical section 
+  read the produced datum and put zero instead
+- 'write_idx' is an integer for counting 
+  how many data had been put into buffer by producers
+- 'read_idx' is an interger for counting 
+  how many data had been read out from buffer by consumers
+- 'm' and 'n' are the number of producers and consumers, respectively
+- 'consumer_end_flag' is an integer(or boolean, precisely) indicating 
+  if all the conditions that should be met for terminating all consumers
+
+
+## Execution Result Samples
+NOTE: The result given below is just the value of shared variable 'SUM'. 
+The full output including some instructive messages are given as separate file 
+'problem3.result.m2n7.log' in a 'src/prob3/withlog' directory under tar arhive root.
+
+(a) m = 1, n = 1
+ $ ./problem3 1 1
+ 1275
+
+(b) m = 1, n = 2
+ $ ./problem3 1 2
+ 1275
+
+(c) m = 2, n = 1
+ $ ./problem3 2 1
+ 2550
+
+(d) m = 2, n = 2
+ $ ./problem3 2 2
+ 2550
+
+(e) m = 5, n = 7
+ $ ./problem3 5 7
+ 6375
+
+(f) m = 100, n = 1000
+ $ ./problem3 100 1000
+ 127500
+
+(g) m = 1, n = 1000
+ $ ./problem3 1 1000
+ 1275
+
+(h) m = 1, n = 10000
+ $ ./problem3 1 10000
+ 1275
 

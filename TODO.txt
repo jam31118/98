@@ -9,3 +9,20 @@
 
 - why do we ftruncate()?
 
+170531
+- 1m1n was done
+- should do mmnn which is equivalent to problem 3.
+- should practice for just mulpiprocess handleing, without any other code
+  e.g. generate 10 processes with each of them printing only once their PID (by getpid())
+  and exit them properly
+
+- Let's try this in 'multiProcess.c'
+  ==> https://stackoverflow.com/questions/876605/multiple-child-process
+- upgrade 1m1n to 2m1n, 1m2n, 2m2n, and mmnn
+- I think we don't have to use if-else tree .. .. or not. ah,
+  instead, we can use two parellel loop: one for consumer, the other for producer
+  last loop for both waiting..
+
+- Does multiple shm_open with each read/write authorities a problem?
+- What's the difference between 1m1n script and "mmnn 1 1"? should be same!
+

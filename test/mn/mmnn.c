@@ -4,7 +4,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <wait.h>
-//#include <sys/wait.h>
 #include <stdlib.h>
 
 #include <sys/shm.h>
@@ -62,11 +61,11 @@ void printSEM(sem_t *mutex, sem_t *full, sem_t *empty) {
 			(int) getpid(),mutex_val, full_val, empty_val);
 }
 
-int producer(){
+int producer() {
 	/* Open Shared memory */
 	const size_t SIZE = sizeof(sh_data_t);
 	int shm_fd = shm_open(SHMNAME, O_RDWR, 0666);
-	if (shm_fd == -1) {fprintf(stderr,"[PID=%d]Shared failed in CREATing\n",(int)getpid()); return 1;}
+	if (shm_fd == -1) {fprintf(stderr,"[PID=%d] Shared failed in CREATing (errno == %s\n",(int)getpid(),strerror(errno)); return 1;}
 	sh_data_t *sh_data_p = (sh_data_t *) 
 		mmap(NULL, SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
 	if(sh_data_p == MAP_FAILED) {fprintf(stderr,"[PID=%d] Map Failed\n",(int)getpid());return 1;}
@@ -151,11 +150,11 @@ int producer(){
 int consumer() {
 	/* Open Shared memory */
 	const size_t SIZE = sizeof(sh_data_t);
-	int shm_fd = shm_open(SHMNAME, O_RDWR,0666);
-	if (shm_fd == -1) {fprintf(stderr,"[PID=%d]Shared failed in CREATing\n",(int)getpid()); return 1;}
+	int shm_fd = shm_open(SHMNAME, O_RDWR, 0666);
+	if (shm_fd == -1) {fprintf(stderr,"[PID=%d] Shared failed in CREATing (errno == %s\n",(int)getpid(),strerror(errno)); return 1;}
 	sh_data_t *sh_data_p = (sh_data_t *) 
 		mmap(NULL, SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
-	if(sh_data_p == MAP_FAILED) {printf("Map Failed\n");return 1;}
+	if(sh_data_p == MAP_FAILED) {fprintf(stderr,"[PID=%d] Map Failed\n",(int)getpid());return 1;}
 
 	/* Open Semaphores */
 	sem_t *empty, *mutex, *full;
@@ -235,19 +234,20 @@ int consumer() {
 }
 
 int main(int argc, char *argv[]) {
-    /* Disabling buffering in standard output and error 
-     * so the printf and fprintf yield its content immediately */
+
+	/* Disabling buffering in standard output and error 
+	* so the printf and fprintf yield its content immediately */
 	setbuf(stderr,NULL);
 	setbuf(stdout,NULL);
-	
+
 	/* Parsing */
-	if (argc <= 1)
-	{
-		printf("Enter m, n values \n");
-		return 1;
-	}
+	if (argc <= 1) {printf("Enter m, n values\n");return 1;}
 	int m = atoi(argv[1]);
 	int n = atoi(argv[2]);
+	printf("We will be make %d producer(s) and %d consumer(s) \n \n \n", m, n);
+
+	/* Declaring pid container for multiple processes */ 
+	pid_t producer_pids[m], consumer_pids[n];
 
 	/* Shared memory information */
 	const char *shmName = "/SHM";
@@ -257,7 +257,7 @@ int main(int argc, char *argv[]) {
 	
 	/* Shared memory declaration */
 	shm_fd = shm_open(shmName, O_CREAT | O_RDWR, 0666);
-	if (shm_fd == -1) {fprintf(stderr,"[PID=%d]Shared failed in CREATing\n",(int)getpid()); return 1;}
+	if (shm_fd == -1) {fprintf(stderr,"[PID=%d] Shared failed in CREATing (errno == %s\n)",(int)getpid(),strerror(errno)); return 1;}
 	if (ftruncate(shm_fd,SIZE)) printf("[ERROR] Failed to ftruncate()\n");
 	sh_data_p = (sh_data_t *) mmap(0,SIZE,PROT_READ|PROT_WRITE,MAP_SHARED,shm_fd,0);
 	if(sh_data_p == MAP_FAILED) {printf("Map Failed\n");return 1;}
@@ -284,6 +284,7 @@ int main(int argc, char *argv[]) {
 	/* Debug info: checking initialization */
 	printSEM(mutex_id,full_id,empty_id);
 
+	
 	/* Creating Child Processes */
 	pid_t ch1, ch2;
 	ch1 = fork();
@@ -294,10 +295,30 @@ int main(int argc, char *argv[]) {
 		ch2 = fork();
 		if (ch2) {
             /* Wait for child processes to terminate and get their exit statuses */
+            /*
 			tmp = wait(&status);
 			fprintf(stderr,"[PID=%d] Producers(PID==%d) exited with status %d\n",(int) getpid(), tmp, status);
 			tmp = wait(&status);
 			fprintf(stderr,"[PID=%d] Consumers(PID==%d) exited with status %d\n",(int) getpid(), tmp, status);	
+            */
+			/*
+			for (i=0; i<m; i++) {
+				tmp = waitpid(producer_pids[i],&status,0);
+				fprintf(stderr,"[ LOG ] [PID==%d] Producer exited with status 0x%x\n",tmp, status);	
+			}
+			for (i=0; i<n; i++) {
+				tmp = waitpid(consumer_pids[i],&status,0);
+				fprintf(stderr,"[ LOG ] [PID==%d] Consumer exited with status 0x%x\n",tmp, status);	
+			}*/
+			/* 170531 NOTE 
+			 * When using waitpid with option > 0, the mother process 
+			 * terminate faster than children */
+
+			int totalProcessNum = m + n;
+			for (i=0; i<totalProcessNum; i++) {
+				tmp = wait(&status);
+				fprintf(stdout,"[PID=%d] Process(PID==%d) exited with status %d\n",(int) getpid(), tmp, status);
+			}
 
 			/* Unlink Shared memory */
 			shm_unlink(SHMNAME);
@@ -315,11 +336,40 @@ int main(int argc, char *argv[]) {
 
 		} else {
             /* Child Process: Consumer */
-			consumer();
+			//consumer();
+			/* Child Processes: Consumers */
+			for ( i = 0; i < n; ++i ) {
+				consumer_pids[i] = fork();
+				if (consumer_pids[i] < 0) {
+					fprintf(stderr,"[ERROR] Failed to fork()\n");
+					return 1;
+				} else if (consumer_pids[i] == 0) {
+					fprintf(stderr,"[ LOG ] I'm in Comsumers PID==%d, PPID==%d\n",(int) getpid(), (int) getppid());
+					//consumer(sh_data_p,empty_id,mutex_id,full_id);
+                    consumer();
+					return 0;
+				}
+			}
 		}
 	} else {
         /* Child Process: Producer */
-		producer();
+		//producer();
+		/* Child Processes: Producers */
+		for ( i = 0; i < m; ++i ) {
+			producer_pids[i] = fork();
+			if (producer_pids[i] < 0) {
+				fprintf(stderr,"[ERROR] Failed to fork()\n");
+				return 1;
+			} else if (producer_pids[i] == 0) {
+				fprintf(stderr,"[ LOG ] I'm in Producers PID==%d, PPID==%d\n",(int) getpid(), (int) getppid());
+				//producer(sh_data_p,empty_id,mutex_id,full_id);
+                producer();
+				return 0;
+			} else {
+				/* child process which isn't producer nor consumer 
+				 * but going to be ancesstors for another producers */
+			}
+		}
 	}
 	return 0;
 }
